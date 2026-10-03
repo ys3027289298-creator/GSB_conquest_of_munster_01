@@ -1,0 +1,24 @@
+from enum import Enum, auto
+
+class Screens(Enum):
+    MAIN_MENU = auto()
+    INVENTORY = auto()
+    CREATION = auto()
+    EXPLORATION = auto()
+    OPTIONS = auto()
+    SLOTS = auto()
+    PAUSE_MENU = auto()
+    GAME_OVER = auto()
+    EXIT = auto()
+
+class Stat(Enum):
+    HEALTH = auto()
+    STRENGTH = auto()
+    SPEED = auto()
+    LUCK = auto()
+
+class Direction(Enum):
+    NORTH = auto()
+    SOUTH = auto()
+    EAST = auto()
+    WEST = auto()
