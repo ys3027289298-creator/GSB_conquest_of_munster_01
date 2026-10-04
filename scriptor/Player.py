@@ -1,9 +1,11 @@
 import Misc
+from Misc import ScriptError
+from Room import Room
 
 class Player(object):
-    def __init__(self, room, inv = []):
+    def __init__(self, room, inv = None):
         self.loc = room
-        self.inv = inv
+        self.inv = [] if inv is None else inv
 
     def printInv(self):
         print("\n==========Inventory==========")
@@ -12,6 +14,8 @@ class Player(object):
         print("=============================")
 
     def goto(self, room):
+        if not isinstance(room, Room):
+            raise ScriptError("player cannot move to undefined room {!r}".format(room))
         self.loc = room
 
     def addToInv(self, itemName):

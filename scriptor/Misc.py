@@ -3,3 +3,6 @@ def flatten(list):
 
 def find(item, list):
     return next(x for x in list if item in x.names)
+
+class ScriptError(Exception):
+    pass
