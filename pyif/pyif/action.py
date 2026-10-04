@@ -7,24 +7,27 @@ from . import message
 from .debug import log
 #from types import *
 
+from types import FunctionType
+
 from . import CLOTHING, CONTAINER, LIGHT, OPEN, SCENERY, SUPPORTER, TRANSPARENT, VISITED, WORN
 
 def before_actions(story):
 
     room = story.actor.room()
 
-    # Call 'react_before' on all objects in scope
-    for item in room.children:
-        if item.react_before:
-            log("'%s'.react_before()" % item.name)
-            if item.react_before(item, story):
+    if room is not None:
+        # Call 'react_before' on all objects in scope
+        for item in room.children:
+            if item.react_before:
+                log("'%s'.react_before()" % item.name)
+                if item.react_before(item, story):
+                    return True
+
+        # Call 'before' of the current room
+        log("'%s'.before()" % room.name)
+        if room.before:
+            if room.before(room, story):
                 return True
-    
-    # Call 'before' of the current room
-    log("'%s'.before()" % room.name)
-    if room.before:
-        if room.before(room, story):
-            return True
     
     # Call before of the first noun if there is one
     if len(story.nouns) > 0 and story.nouns[0].before:
@@ -38,18 +41,19 @@ def after_actions(story):
 
     room = story.actor.room()
 
-    # Call 'react_after' on all objects in scope
-    for item in room.children:
-        if item.react_after:
-            log("'%s'.react_after()" % item.name)
-            if item.react_after(item, story):
+    if room is not None:
+        # Call 'react_after' on all objects in scope
+        for item in room.children:
+            if item.react_after:
+                log("'%s'.react_after()" % item.name)
+                if item.react_after(item, story):
+                    return True
+
+        # Call 'after' of the current room
+        log("'%s'.after()" % room.name)
+        if room.after:
+            if room.after(room, story):
                 return True
-    
-    # Call 'after' of the current room
-    log("'%s'.after()" % room.name)
-    if room.after:
-        if room.after(room, story):
-            return True
     
     # Call after of the first noun if there is one
     if len(story.nouns) > 0 and story.nouns[0].after:
@@ -61,17 +65,20 @@ def after_actions(story):
 
 def brief(story):
     "Switch to brief (normal) descriptions"
-    
+
+    story.mode = "brief"
     return False
 
 def verbose(story):
     "Switch to verbose (long) descriptions"
-    
+
+    story.mode = "verbose"
     return False
 
 def superbrief(story):
     "Switch to superbrief (short) descriptions"
-    
+
+    story.mode = "superbrief"
     return False
 
 def quit(story):
@@ -179,7 +186,8 @@ def examine(story):
         return
 
     # Is there a light source to see by?
-    if not story.actor.room().has_light():
+    room = story.actor.room()
+    if room is None or not room.has_light():
         glk.put_string(message.TOO_DARK)
         return
 
@@ -235,14 +243,22 @@ def look(story, implicit_look=False):
 
     room = story.actor.room()
 
-    # Is there a light source to see by?
-    if room.has_light():
+    # Is there a light source to see by?  An actor who is not currently in
+    # any room is treated as standing in darkness.
+    if room is not None and room.has_light():
         glk.set_style(glk.STYLE_SUBHEADER)
         glk.put_string(room.name)
         glk.put_char("\n")
         glk.set_style(glk.STYLE_NORMAL)
 
-        if not implicit_look or VISITED not in room.attributes:
+        show_description = not implicit_look
+        if implicit_look:
+            if story.mode == "verbose":
+                show_description = True
+            elif story.mode == "brief":
+                show_description = VISITED not in room.attributes
+
+        if show_description:
             glk.put_string(room.description)
             glk.put_char("\n")
             
@@ -332,9 +348,12 @@ def throw_at(story):
 
 def go(story):
     "Simple movement"
-    
+
     room = story.actor.room()
-    
+    if room is None:
+        glk.put_string(message.CANT_GO)
+        return
+
     if before_actions(story):
         return
 
@@ -372,7 +391,8 @@ def search(story):
         return
 
     # Is there a light source to see by?
-    if not story.actor.room().has_light():
+    room = story.actor.room()
+    if room is None or not room.has_light():
         glk.put_string(message.TOO_DARK)
         return
 
@@ -407,6 +427,11 @@ def wear(story):
 
 def take(story):
     "Take an item."
+
+    # Already carrying it?  Report and leave the world untouched.
+    if story.nouns[0] in story.actor.children:
+        glk.put_string(message.ALREADY_HAVE)
+        return False
 
     if before_actions(story):
         return
@@ -446,7 +471,7 @@ def actions(story):
     story.debug_actions = True
 
 def grammar(story):
-    for verb in story.parser.grammar_obj.verbs:
+    for verb in story.grammar.verbs:
         glk.put_string("%s\n" % verb)
 
 def messages(story):
@@ -457,4 +482,5 @@ def tree(story):
 
 def dump(story):
     glk.put_string("%s\n" % story.nouns[0].name)
-    glk.put_string(" room: %s\n" % story.nouns[0].room().name)
+    room = story.nouns[0].room()
+    glk.put_string(" room: %s\n" % (room.name if room is not None else "<none>"))

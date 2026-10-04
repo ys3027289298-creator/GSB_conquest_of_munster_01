@@ -1,6 +1,7 @@
 
 from . import action
 from .parser import NOUN_TOKEN, HELD_TOKEN, MULTI_TOKEN, MULTIHELD_TOKEN, MULTIEXCEPT_TOKEN, MULTIINSIDE_TOKEN, TOPIC_TOKEN, CREATURE_TOKEN
+from . import debug
 from .debug import log
 
 class Verb:
@@ -41,12 +42,14 @@ class Verb:
                     t = a[0][i]
                     f = None
 
-                if t == NOUN_TOKEN or MULTI_TOKEN:
-                    
+                if t in (NOUN_TOKEN, HELD_TOKEN, MULTI_TOKEN,
+                         MULTIHELD_TOKEN, MULTIEXCEPT_TOKEN,
+                         MULTIINSIDE_TOKEN, CREATURE_TOKEN):
+
                     # We are expecting a noun -- is it legal?
                     log("NOUN_TOKEN")
                     if self.grammar.legal_noun_token(tokens[i]):
-                    
+
                         # Is there a qualifying function?
                         if f == None or f() == True:
                             log("matched noun token")
@@ -55,14 +58,12 @@ class Verb:
                         else:
                             log("noun token matched but qualifying function returned False")
 
-                if t == HELD_TOKEN:
-                    
-                    # We are expecting a noun -- is it legal?
-                    log("HELD_TOKEN")
-                    if self.grammar.legal_noun_token(tokens[i]):
-                        log("matched noun token")
-                        matched_noun_tokens.append((tokens[i], t))
-                        match_count += 1
+                elif t == TOPIC_TOKEN:
+
+                    # A topic is free text; it does not resolve to an object
+                    log("TOPIC_TOKEN")
+                    matched_noun_tokens.append((tokens[i], t))
+                    match_count += 1
 
                 elif t == tokens[i]:
                     log("matched: %s" % t)
@@ -283,21 +284,23 @@ class Grammar:
         verb.add_action([], action.go, [self.story.outside])
 
 
-        # Debugging verbs
-        verb = self.add_verb(["actions"])
-        verb.add_action([], action.actions)
+        # Debugging verbs are only available when debug mode has been
+        # enabled explicitly, so they never leak into a release story.
+        if debug.is_enabled():
+            verb = self.add_verb(["actions"])
+            verb.add_action([], action.actions)
 
-        verb = self.add_verb(["grammar"])
-        verb.add_action([], action.grammar)
-        
-        verb = self.add_verb(["messages"])
-        verb.add_action([], action.messages)
+            verb = self.add_verb(["grammar"])
+            verb.add_action([], action.grammar)
 
-        verb = self.add_verb(["tree"])
-        verb.add_action([], action.tree)
-        
-        verb = self.add_verb(["dump"])
-        verb.add_action([NOUN_TOKEN], action.dump)
+            verb = self.add_verb(["messages"])
+            verb.add_action([], action.messages)
+
+            verb = self.add_verb(["tree"])
+            verb.add_action([], action.tree)
+
+            verb = self.add_verb(["dump"])
+            verb.add_action([NOUN_TOKEN], action.dump)
         
     def add_verb(self, verb_tokens):
         verb = Verb(self, verb_tokens)

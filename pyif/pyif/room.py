@@ -1,6 +1,4 @@
 
-class Room:
+from .thing import Room
 
-    def __init__(self, name):
-        self.name = name
-
+__all__ = ["Room"]

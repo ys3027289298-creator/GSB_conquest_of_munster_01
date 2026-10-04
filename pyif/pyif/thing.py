@@ -116,11 +116,22 @@ class Thing:
                 if d:
                     return d
         return None
+
+    def find_all(self, noun):
+        "All descendants (depth first) whose nouns contain the given word."
+        found = []
+        for c in self.children:
+            if noun in c.nouns:
+                found.append(c)
+            found.extend(c.find_all(noun))
+        return found
         
     def room(self):
         "The room that contains this thing, or self if it is a room"
         if isinstance(self, Room):
             return self
+        elif self.parent is None:
+            return None
         else:
             return self.parent.room()
         

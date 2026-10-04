@@ -4,11 +4,11 @@ Created on Nov 21, 2013
 @author: david
 '''
 
-from thing import Thing, Player
-import grammar
-import parser
-import action
-import glk
+from .thing import Thing, Player
+from . import grammar
+from . import parser
+from . import action
+from . import glk
 
 class Story:
 
@@ -60,6 +60,9 @@ class Story:
         self.has_quit = False
         self.deadflag = 0
         self.keep_silent = False
+        self.mode = "brief"
+        self.debug_actions = False
+        self.debug_messages = False
 
         self.grammar = grammar.Grammar(self)
         
