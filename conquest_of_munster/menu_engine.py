@@ -1,8 +1,14 @@
+import os
 import pickle
 import random
+import subprocess
 import sys
 import time
 from os import path
+
+# A game file left over from a previous run must not leak into this session.
+if path.exists('current_game.ch'):
+    os.remove('current_game.ch')
 
 # menu option for running of game
 while True:
@@ -21,15 +27,13 @@ while True:
                     get_choice(choice)
                 #  if number less than 1 or greater than 3 chosen
                 else:  # re-runs choice option
-                    choice = int(input('Welcome to the Conquest of Munster Word Game \n'
-                                       'Please Select a number from the following options \n'
-                                       '1. Enter Game File to Play \n'
-                                       '2. Start Game\n'
-                                       '3. Quit \n'
-                                       '>>>> '))
+                    print("Please enter valid options only")
             # for handling of string data instead of numeric options
             except ValueError:
                 print("Please enter valid options only")
+            # input stream closed (e.g. Ctrl+D); exit cleanly instead of crashing
+            except EOFError:
+                sys.exit(0)
 
     # handles the users choice
     def get_choice(choice):
@@ -37,19 +41,38 @@ while True:
             game_name = input("Please enter file name of the game you wish to play")
             # check if game file exists in directory
             if path.exists(game_name):
-                exec(open(game_name).read())
+                # discard any previous game file before loading the new one
+                if path.exists('current_game.ch'):
+                    os.remove('current_game.ch')
+                # run the game file in its own process so it cannot pollute the menu state
+                subprocess.run([sys.executable, game_name])
             else:
                 print("That game file does not exist")
         elif choice == 2:  # call on program to request game file name
-            if path.exists('current_game.ch'):
-                with open('current_game.ch', 'rb') as chapter:
-                    story = pickle.load(chapter)
+            story = load_game()
+            if story is not None:
                 play_story(story)
+                # a finished game is consumed so it cannot be continued or replayed
+                os.remove('current_game.ch')
             else:
                 print("Please Select Option 1 and load valid game file")
         elif choice == 3:  # calls on program to exit as per users request
             print("You have chosen to finish the game thanks for playing")
             exit()
+
+    # Loads the current game file, returning None (and discarding the file) when it is missing or unreadable.
+    def load_game():
+        if not path.exists('current_game.ch'):
+            return None
+        try:
+            with open('current_game.ch', 'rb') as chapter:
+                story = pickle.load(chapter)
+        except (OSError, EOFError, pickle.UnpicklingError):
+            story = None
+        if not isinstance(story, dict):
+            os.remove('current_game.ch')
+            return None
+        return story
 
     # Game Engine Function from Original Game Engine.py file
     # Function: Slows down text output to output one word at a time, instead of the whole line at once.
@@ -71,7 +94,11 @@ while True:
     # Function: Takes input from the user. If the user inputs something invalid, it loops, else it returns the input.
     def get_user_input(valid_input: list):
         while True:
-            user_entered = input()
+            try:
+                user_entered = input()
+            except EOFError:
+                sys.exit(0)
+
             if user_entered not in valid_input:
                 print("Invalid input. Please use one of the following inputs:\n")
                 print(valid_input)
@@ -99,12 +126,13 @@ while True:
             if page is None:
                 break
 
-            continue_text(page['Text'])
+            continue_text(page.get('Text', []))
 
-            if len(page['Options']) == 0:
+            options = page.get('Options', [])
+            if len(options) == 0:
                 break
 
-            current_page = create_response(page['Options'])
+            current_page = create_response(options)
 
 
     def main():
