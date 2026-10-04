@@ -9,6 +9,7 @@ def training(player):
     ability_choice = get_ability_choice(player)
     fight_dummy(player, ability_choice, training_dummy)
     get_training_choice(player, ability_choice, training_dummy)
+    player.mana = 100
 
 def view_stats(player):
     time.sleep(1)
@@ -50,7 +51,6 @@ def get_ability_choice(player):
 def fight_dummy(player, ability_choice, training_dummy):
     time.sleep(1)
     player.use_ability(ability_choice, training_dummy)
-    player.mana = 100
     time.sleep(1)
     training_dummy.invincible()
     time.sleep(1)

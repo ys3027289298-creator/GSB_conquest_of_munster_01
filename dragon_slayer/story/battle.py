@@ -11,6 +11,7 @@ def battle(player):
     won = determine_won(player)
     if won:
         print_ending(player)
+    return won
 
 def get_fight_dragon_choice():
     while True:
