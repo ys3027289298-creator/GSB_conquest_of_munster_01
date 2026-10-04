@@ -1,5 +1,7 @@
 from pyparsing import *
 
+import Misc
+
 if_condition = (
     Suppress(Literal("[")) +
     Word(printables).setResultsName("subject") +
@@ -134,6 +136,31 @@ combined = OneOrMore(
     )
 )
 
+room.setName("room definition starting with '+roomID:' plus 'Name:' and 'Description:' fields")
+
+def parse_script(text):
+    """Parse a full script, requiring the whole text to be consumed.
+
+    Invalid or incomplete scripts raise Misc.ScriptError with the
+    location and offending line instead of a raw ParseException, and
+    unparsed text at the end (e.g. typos after the last room) is an
+    error rather than being silently ignored.
+    """
+    try:
+        return combined.parseString(text, parseAll=True)
+    except ParseException as error:
+        line = (error.line or "").strip()
+        message = error.msg or "unexpected input"
+        if not text.strip():
+            raise Misc.ScriptError("could not parse script: the script is empty")
+        location = " at line %d, column %d" % (error.lineno, error.col)
+        hint = ""
+        if "room definition" in message:
+            hint = " (each room needs a '+id:' header, a 'Name:' field and a 'Description:' field)"
+        details = ("\n  %s" % line) if line else ""
+        raise Misc.ScriptError("could not parse script: %s%s%s%s"
+                               % (message, location, hint, details))
+
 parsed = """
 +room1:
 
@@ -161,7 +188,8 @@ Paths:
 
 # print(roomCommands.parseString(parsed))
 
-print(combined.parseString(parsed)[0])
+if __name__ == "__main__":
+    print(combined.parseString(parsed)[0])
 
 # roomDesc
 

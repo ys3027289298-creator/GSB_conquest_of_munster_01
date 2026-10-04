@@ -1,9 +1,9 @@
 import Misc
 
 class Player(object):
-    def __init__(self, room, inv = []):
+    def __init__(self, room, inv = None):
         self.loc = room
-        self.inv = inv
+        self.inv = inv if inv is not None else []
 
     def printInv(self):
         print("\n==========Inventory==========")
