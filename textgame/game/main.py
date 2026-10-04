@@ -2,6 +2,7 @@ from inventory import Inventory
 import cmd
 from room import get_room
 from player import Player
+import Load
 import textwrap
 import time
 import random
@@ -19,10 +20,10 @@ class Controls(cmd.Cmd):
         cmd.Cmd.__init__(self)
         self.loc = get_room('intro')
         self.look()
-        self.pos()
-        self.event = Events()
+        self.event = Events(self)
         self.inventory = Inventory()
-        self.Player = Player()
+        self.player = Player()
+        self.pos()
 
 #------------------------------------------------------------------------
 #This checks which room you are in if you can go the way for the command
@@ -39,18 +40,22 @@ class Controls(cmd.Cmd):
             self.look()
 
     def move(self, dir):
+        if not self.player.is_alive():
+            print('You are dead and cannot move')
+            return
         newroom = self.loc._neighbor(dir)
         if newroom is None:
             print('''You cannot go this away''')
             self.look()
         else:
             self.loc = get_room(newroom)
+            self.pos()
             self.look()
  #           event.spawnAtPos()
 
     def pos(self):
-        
-        position = self.loc.name
+        self.position = self.loc.name
+        return self.position
     
     def look(self):
 #       print((self.loc.name))
@@ -73,7 +78,6 @@ class Controls(cmd.Cmd):
     def do_e(self, args):
         '''goes east'''
         self.move('e')
-        self.move('east')
 
     def do_w(self, args):
         '''goes west'''
@@ -85,8 +89,9 @@ class Controls(cmd.Cmd):
 
     def do_get(self, args):
         '''Gets items from an area or from your bag'''
-        if self.inventory.slots[args] > 0:
-            self.player.right_hand(args)
+        if self.inventory.has_item(args):
+            self.player.hold(args, 'right')
+            print('You take the %s' % args)
         else:
             print('You do not have this item')
 
@@ -112,7 +117,11 @@ items in an area as well''', 72)):
         self.event.timeOfDay()
 	  
     def do_chop(self, args):
-        self.objects('trees')
+        if self.loc._objects('trees') is not None:
+            self.inventory.add_item('wood')
+            print('You chop some wood')
+        else:
+            self.objects('trees')
 
     def do_name(self, args):
         '''Prints the users name if there is one'''
@@ -120,10 +129,10 @@ items in an area as well''', 72)):
 
     def do_hand(self, args):
         '''Prints what is in hand'''
-        if self.Player.hand() == ' ':
-        	print("You are not holding anything")
+        if self.player.hand() == ' ':
+            print("You are not holding anything")
         else:
-        	print(self.Player.hand())
+            print(self.player.hand())
 
     def do_next(self, args):
         '''Gets the next event'''
@@ -142,7 +151,26 @@ items in an area as well''', 72)):
         '''Quits the game'''
         print("thank you for playing")
         return True
-    
+
+    def do_save(self, args):
+        '''Saves the game: save <path>'''
+        path = args.strip() or 'savegame.json'
+        try:
+            Load.save_game(self, path)
+            print('Game saved to %s' % path)
+        except OSError as e:
+            print('Could not save game: %s' % e)
+
+    def do_load(self, args):
+        '''Loads the game: load <path>'''
+        path = args.strip() or 'savegame.json'
+        try:
+            Load.load_game(self, path)
+            print('Game loaded from %s' % path)
+            self.look()
+        except (OSError, ValueError, KeyError) as e:
+            print('Could not load game: %s' % e)
+
 ''' def do_pos(self, args):
         print(self.loc.name) '''
 
@@ -152,9 +180,15 @@ class Events(object):
 	# spawning of monsters, and possibly special event occurenses based on date, time of day
 	# I'm thinking of making this games time as the same as the system time.
 	
-	def __init__(self):
-		self.room = Controls.pos
+	def __init__(self, controls=None):
+		self.controls = controls
 		self.time = time
+
+	@property
+	def room(self):
+		if self.controls is None:
+			return None
+		return getattr(self.controls, 'position', None)
 
 	def timeOfDay(self):
 		print('The time is ' + time.strftime('%I:%M %p'))
@@ -173,18 +207,16 @@ class Events(object):
 	#-------------------------------------------------
 	# creature spawning
 	
-	def spawAtPos(self):
-		
+	def spawnAtPos(self):
 		chance = random.randrange(100)
-		
-		for i in chance:
-			if i <= 49:
-				print("There is a monster in the area")
-			else:
-				print("The area seems safe for now")
-				
-		
-			
+		if chance <= 49:
+			print("There is a monster in the area")
+			return True
+		else:
+			print("The area seems safe for now")
+			return False
+
+	spawAtPos = spawnAtPos
 
 if __name__ == '__main__':
 	c = Controls()

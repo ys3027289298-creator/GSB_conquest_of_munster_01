@@ -1,0 +1,6 @@
+{
+    "name": "Windy Hill",
+    "objects": {},
+    "description": "A windy hill overlooking the town. A dark cave mouth gapes to the north.",
+    "neighbors": {"w": "town", "enter": "cave"}
+}

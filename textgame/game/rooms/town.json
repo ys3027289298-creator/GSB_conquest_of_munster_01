@@ -1,0 +1,6 @@
+{
+    "name": "Munster Town",
+    "objects": {"well": "An old stone well."},
+    "description": "A sleepy town square. The forest lies to the west and a hill rises to the east.",
+    "neighbors": {"w": "intro", "e": "hill"}
+}

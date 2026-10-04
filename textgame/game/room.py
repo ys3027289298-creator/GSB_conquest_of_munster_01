@@ -14,10 +14,9 @@ def get_room(id):
     return ret
 
 
-def grab_object(objects):
-    objects = None
-    if objects in Room(objects):
-        return objects
+def grab_object(room, name):
+    if isinstance(room, Room) and name in room.objects:
+        return room.objects[name]
     else:
         return 0
 

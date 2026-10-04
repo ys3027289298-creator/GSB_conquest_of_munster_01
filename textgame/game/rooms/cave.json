@@ -1,0 +1,6 @@
+{
+    "name": "Dark Cave",
+    "objects": {"bones": "A pile of old bones."},
+    "description": "It is cold and damp inside the cave. Daylight glimmers behind you.",
+    "neighbors": {"leave": "hill"}
+}

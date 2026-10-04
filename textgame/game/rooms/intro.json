@@ -1,0 +1,6 @@
+{
+    "name": "Forest Clearing",
+    "objects": {"trees": "A cluster of tall pine trees."},
+    "description": "You stand in a quiet forest clearing. A path leads east toward a small town.",
+    "neighbors": {"e": "town"}
+}

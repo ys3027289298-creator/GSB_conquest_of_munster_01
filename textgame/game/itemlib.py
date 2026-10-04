@@ -1,38 +1,30 @@
+ITEM_IDS = {
+    1: 'wood',
+    2: 'stone',
+    3: 'dirt',
+    4: 'gravel',
+    5: 'water',
+    6: 'wooden axe',
+    7: 'wooden sword',
+    8: 'stone axe',
+    9: 'stone sword',
+}
+
+ITEM_NAMES = tuple(ITEM_IDS.values())
 
 
 class Items(object):
 
-    def __init__(self, item='item type', durability=0, gain=0,
+    def __init__(self, item='wood', durability=0, gain=0,
         materials=0, id=0):
+        if item not in ITEM_NAMES:
+            raise KeyError('unknown item: %r' % (item,))
         self.item = item
         self.durability = durability
         self.gain = gain
         self.materials = materials
         self.id = id
 
-    def item_id(self, id):
-
-        self.wood = 'wood'
-        self.stone = 'stone'
-        self.dirt = 'dirt'
-        self.gravel = 'gravel'
-        self.water = 'water'
-        self.wooden_axe = 'wooden axe'
-        self.wooden_sword = 'wooden sword'
-        self.stone_axe = 'stone axe'
-        self.stone_sword = 'stone sword'
-
-        self.id = {
-            1: self.wood,
-            2: self.stone,
-            3: self.dirt,
-            4: self.gravel,
-            5: self.water,
-            6: self.wooden_axe,
-            7: self.wooden_sword,
-            8: self.stone_axe,
-            9: self.stone_sword
-            }
-
-        for k, v in sorted(self.id.items()):
-            print((v))
+    @staticmethod
+    def item_id(id):
+        return ITEM_IDS.get(id)
