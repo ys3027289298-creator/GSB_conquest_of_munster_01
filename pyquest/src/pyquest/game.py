@@ -2,6 +2,7 @@ import os
 import sys
 import xml.etree.ElementTree as ET
 
+from pyquest.errors import MissingObjectError
 from pyquest.script_engine import Script, ScriptEngine, QuestValue
 from pyquest.world_model import QuestObject
 
@@ -21,6 +22,8 @@ See the License for the specific language governing permissions and
 limitations under the License."""
 
 the_game = None
+
+_UNSET = object()
 
 
 class QuestGame:
@@ -44,7 +47,7 @@ class QuestGame:
                   "from packed Quest file" if from_qfile else "in raw mode.")
         try:
             game = open(file_name, 'rb')
-        except FileNotFoundError as e:
+        except FileNotFoundError:
             print("*** I was unable to read the game file", game_file, file=sys.stderr)
             exit(127)
 
@@ -58,8 +61,16 @@ class QuestGame:
         if self.debug:
             print("Successfully read in ASLX file.")
 
+        self._reset_metadata()
         self.script_engine = ScriptEngine(self)
         self.objects = {"game": self}
+        self._load_from_root()
+        self.script_engine.prep()
+
+    def _reset_metadata(self):
+        self.script_engine = None
+        self.objects = {}
+        self.last_error = None
         self.name = "No Name"
         self.gameid = "UNKNOWN"
         self.version = "UNKNOWN"
@@ -72,6 +83,7 @@ class QuestGame:
         self.startup = None
         # self.settings = {}
 
+    def _load_from_root(self):
         if self.debug:
             print("Beginning ASLX/XML tree traversal.")
         for element in self.root:
@@ -123,14 +135,61 @@ class QuestGame:
         if self.debug:
             print("Done traversing ASLX/XML tree.")
 
-        self.script_engine.prep()
-
     def run(self):
         print("Welcome to", self.name, "by", self.author, "version", self.version)
         if isinstance(self.startup, Script):
             self.startup()
         elif self.startup is not None:
             print(self.startup)
+
+    def restart(self):
+        """Start a fresh playthrough using the already-parsed script tree.
+
+        Rebuilds all objects, the script engine and the firsttime bookkeeping
+        from scratch, so events that already fired in the previous playthrough
+        can fire again and player state goes back to the initial values.
+        """
+        self._reset_metadata()
+        self.script_engine = ScriptEngine(self)
+        self.objects = {"game": self}
+        self._load_from_root()
+        self.script_engine.prep()
+
+    def get_object(self, name):
+        try:
+            return self.objects[name]
+        except KeyError:
+            raise MissingObjectError(name) from None
+
+    def save_state(self):
+        """Capture the complete world state of this playthrough."""
+        return {
+            "objects": {
+                name: obj.snapshot()
+                for name, obj in self.objects.items()
+                if isinstance(obj, QuestObject)
+            },
+            "firsttime": sorted(self.script_engine.firsttime_done),
+        }
+
+    def load_state(self, state):
+        """Restore world state captured by save_state().
+
+        Raises MissingObjectError if the snapshot references an object that
+        does not exist in the current world.
+        """
+        for name, attributes in state.get("objects", {}).items():
+            obj = self.objects.get(name)
+            if obj is None:
+                raise MissingObjectError(name)
+            parent_name = attributes.get("parent", _UNSET)
+            obj.restore(attributes)
+            if parent_name is not _UNSET:
+                if parent_name is None:
+                    obj.parent = None
+                else:
+                    obj.parent = self.get_object(parent_name)
+        self.script_engine.firsttime_done = set(state.get("firsttime", ()))
 
     def create_object(self, tag, parent_obj=None):
         attributes = {
@@ -146,19 +205,22 @@ class QuestGame:
             elif attr.tag == "inherit":
                 attributes['inherit'].append(attr.attrib['name'])
             else:
+                key = attr.attrib["name"] if attr.tag == "attr" else attr.tag
                 the_type = attr.attrib.get('type', None)
                 if the_type == "script":
-                    attributes[attr.tag] = Script(name + "->" + attr.tag, attr.text)
+                    attributes[key] = Script(name + "->" + key, attr.text)
                 elif the_type == "boolean":
-                    attributes[attr.tag] = (attr.text == "True")
+                    attributes[key] = (attr.text == "True")
                 elif the_type == "stringlist":
                     values = []
                     for item in attr:
                         if item.tag == "value":
                             values.append(item.text)
-                    attributes[attr.tag] = values
+                    attributes[key] = values
+                elif the_type == "int":
+                    attributes[key] = int(attr.text) if attr.text is not None else 0
                 else:
-                    attributes[attr.tag] = attr.text
+                    attributes[key] = attr.text
         attributes['parent'] = parent_obj
         self.objects[name] = QuestObject(name, **attributes)
         if self.debug:

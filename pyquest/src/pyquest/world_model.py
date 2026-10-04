@@ -18,7 +18,8 @@ limitations under the License."""
 
 class QuestObject:
     def __init__(self, name, **kwattribs):
-        self.__dict__ = kwattribs
+        for key, value in kwattribs.items():
+            setattr(self, key, value)
         self.name = name
 
     def __str__(self):
@@ -29,3 +30,46 @@ class QuestObject:
             object.__setattr__(self, key, QuestValue(value))
         else:
             object.__setattr__(self, key, value)
+
+    def snapshot(self):
+        """Return a plain-data copy of this object's dynamic state.
+
+        Structural references (the parent object) are not part of the
+        snapshot; only scalar and list attributes are kept so the result
+        can be serialised and later handed to restore().
+        """
+        state = {}
+        parent = self.__dict__.get("parent")
+        if parent is not None:
+            parent_name = getattr(parent, "name", None)
+            if isinstance(parent_name, QuestValue):
+                parent_name = parent_name._value
+            state["parent"] = parent_name
+        for key, value in self.__dict__.items():
+            if key == "parent":
+                continue
+            if isinstance(value, QuestValue):
+                value = value._value
+            if isinstance(value, (str, int, float, bool)) or value is None:
+                state[key] = value
+            elif isinstance(value, (list, tuple)):
+                state[key] = [item._value if isinstance(item, QuestValue) else item
+                              for item in value]
+        return state
+
+    def restore(self, state):
+        """Reset this object's dynamic state from a snapshot.
+
+        Attributes not present in the snapshot are removed; the object's
+        name and parent (its place in the world tree) are preserved.
+        """
+        name = self.name
+        parent = self.__dict__.get("parent")
+        self.__dict__.clear()
+        self.__dict__["name"] = name
+        if parent is not None:
+            self.__dict__["parent"] = parent
+        for key, value in state.items():
+            if key in ("name", "parent"):
+                continue
+            setattr(self, key, value)
