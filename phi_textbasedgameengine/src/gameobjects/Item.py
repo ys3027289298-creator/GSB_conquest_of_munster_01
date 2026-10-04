@@ -12,9 +12,13 @@ def tokenize(effect, error):
     effect = re.sub(' +', ' ', effect.lower().strip())
     for ch in effect:
         if ch == ' ' and not capture:
-            toks.append(tok)
-            tok = ''
+            if tok:
+                toks.append(tok)
+                tok = ''
         elif ch == '(':
+            if capture:
+                error()
+                return
             capture = True
         elif ch == ')':
             if capture:
@@ -24,6 +28,11 @@ def tokenize(effect, error):
                 return
         else:
             tok += ch
+    if capture:
+        error()
+        return
+    if tok:
+        toks.append(tok)
     return toks
 
 class Item(GameObject):
@@ -39,7 +48,7 @@ class Item(GameObject):
         'name': (True, lambda x: x),
         'description': (False, lambda x: x),
         'uses': (True, int),
-        'effects': (True, lambda x: Item.parse_effects)
+        'effects': (True, lambda x: Item.parse_effects(x))
     }
 
     def __init__(self):
@@ -47,7 +56,7 @@ class Item(GameObject):
 
     def use(self, game_ctx):
         self.uses -= 1
-        if self.uses == 0:
+        if self.uses <= 0:
             game_ctx.destroy(self)
         for effect in self.effects:
             effect(game_ctx)
@@ -58,24 +67,22 @@ class Item(GameObject):
 
     @staticmethod
     def parse_effect(effect: str):
-        def add(ctx, obj, *args):
-            obj[args[1]] += args[2]
-        def sub(ctx, obj, *args):
-            obj[args[1]] -= args[2]
+        def add(ctx, obj, prop, value):
+            setattr(obj, prop, getattr(obj, prop) + value)
+        def sub(ctx, obj, prop, value):
+            setattr(obj, prop, getattr(obj, prop) - value)
         
         MODIFIERS = {
             'add': add,
             'sub': sub,
-            'use': lambda ctx, obj, *args: obj.use(ctx),
-            'say': lambda ctx, obj, *args: ctx.send(args[2]),
-            'spawn': lambda ctx, obj, *args: ctx.spawn(args[0]),
-            'destroy': lambda ctx, obj, *args: ctx.destroy(obj)
+            'use': lambda ctx, obj, prop, value: obj.use(ctx),
+            'destroy': lambda ctx, obj, prop, value: ctx.destroy(obj)
         }
         WHICH = {
                 # f for function, e for entities
                 'all': lambda e: list(range(len(e))),
-                'any': lambda e: 0,
-                'random': lambda e: [e[randint(0, len(e)-1)]],
+                'any': lambda e: [0],
+                'random': lambda e: [randint(0, len(e)-1)],
                 'min': lambda e: [min(enumerate(e), key=itemgetter(1))[0]],
                 'max': lambda e: [max(enumerate(e), key=itemgetter(1))[0]]
         }
@@ -83,37 +90,57 @@ class Item(GameObject):
         def raise_err():
             raise GameError(f'Invalid formatting: "{effect}"')
         toks = tokenize(effect, error=raise_err)
-        if len(toks) == 0:
-            return None
+        if not toks:
+            raise_err()
+
+        # 'say' and 'spawn' do not operate on existing context objects
+        if toks[0] == 'say':
+            if len(toks) < 2:
+                raise_err()
+            message = ' '.join(toks[1:])
+            return lambda game_ctx: game_ctx.send(message)
+        if toks[0] == 'spawn':
+            if len(toks) != 2:
+                raise_err()
+            template_name = toks[1]
+            return lambda game_ctx: game_ctx.spawn(template_name)
 
         # First arg must always be a modifier
-        # TODO: error checking/handling below
         if toks[0] not in MODIFIERS:
             raise GameError(f'Invalid modifier {toks[0]}')
         modifier = MODIFIERS[toks[0]]
         i = 1
-        if toks[i].lstrip("-+").isdigit():
+        if i < len(toks) and toks[i].lstrip("-+").isdigit():
             value = int(toks[i])
             i += 1
         else:
             value = 0
-        if toks[i] in WHICH:
+        if i < len(toks) and toks[i] in WHICH:
             which = WHICH[toks[i]]
             i += 1
         else:
             which = WHICH['any']
+        if i >= len(toks):
+            raise_err()
         if '.' in toks[i]:
-            name, prop = toks[i].split()
+            name, prop = toks[i].split('.', 1)
         else:
             name, prop = toks[i], None
+        if modifier in (add, sub) and prop is None:
+            raise GameError(f'Modifier "{toks[0]}" requires a property: "{effect}"')
 
         def call(game_ctx):
-            matches = [obj for obj in game_ctx.entities if obj['name'] == name]
-            values = matches if prop is None else [obj[prop] for obj in matches]
+            matches = game_ctx.get_by_name(name)
+            if not matches:
+                raise GameError(f'Unknown object "{name}" in effect "{effect}"')
+            values = matches if prop is None else [getattr(obj, prop) for obj in matches]
             indices = which(values)
-            args = [name, prop, value]
-            # TODO: Some cases may have no contextual results (e.g. spawn)
-            for    i in indices:
-                modifier(game_ctx, game_ctx.entities[i], *args)
+            for i in indices:
+                try:
+                    modifier(game_ctx, matches[i], prop, value)
+                except GameError:
+                    raise
+                except (AttributeError, TypeError) as ex:
+                    raise GameError(f'Error applying effect "{effect}": {ex}')
         return call
 

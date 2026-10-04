@@ -24,8 +24,8 @@ class YamlUtil():
         @return a list of all yaml objects loaded from the file, & included files
         """
         objects = []
-        loaded = [] # List of files we have already loaded
-        filestack = [filename] # Keep track of files we still need to load
+        loaded = set() # Set of files we have already loaded
+        filestack = [path.normpath(filename)] # Keep track of files we still need to load
         while len(filestack) > 0:
             # Get the next file to parse, skip if already done
             fname = filestack[-1]
@@ -36,11 +36,18 @@ class YamlUtil():
             
             # Get the object and add to our object list
             obj = YamlUtil.get_yaml_object(fname)
-            loaded.append( fname )
+            loaded.add( fname )
             # If we include other files, add them to the stack
             if 'include' in obj:
-                filestack.extend( obj['include'] )
+                includes = obj['include']
                 del obj['include'] # Remove includes from our yaml object
+                if isinstance(includes, str):
+                    includes = [includes]
+                if not isinstance(includes, list):
+                    raise GameError("'include' must be a list of filenames in '{}'".format(fname))
+                # Resolve includes relative to the file that includes them
+                base = path.dirname(fname)
+                filestack.extend( path.normpath(path.join(base, inc)) for inc in includes )
             objects.append( obj )
         return objects
 
@@ -50,11 +57,21 @@ class YamlUtil():
         Wrapper method for yaml.safe_load(), loads an object from a yaml file
         @param filename the name of the file to load from
         @return a python object representing the yaml file
+        @throws GameError if the file is missing, empty, invalid, or not a mapping
         """
-        with open( filename, 'r' ) as stream:
-            data = yaml.safe_load( stream )
-            print('loaded:', data)
-            return data
+        try:
+            with open( filename, 'r' ) as stream:
+                data = yaml.safe_load( stream )
+        except FileNotFoundError:
+            raise GameError("Could not find yaml file '{}'".format(filename))
+        except yaml.YAMLError as ex:
+            raise GameError("Error parsing yaml file '{}': {}".format(filename, ex))
+        if data is None:
+            raise GameError("Yaml file '{}' is empty".format(filename))
+        if not isinstance(data, dict):
+            raise GameError("Yaml file '{}' must contain a mapping at the top level".format(filename))
+        print('loaded:', data)
+        return data
 
     @staticmethod
     def get_yaml_filename(directory : str, name_prefix : str) -> str:
@@ -103,8 +120,8 @@ class YamlUtil():
             else:
                 raise GameError("'{}' is a required field, but no value was provided".format(key))
         except Exception as ex:
-            if ex is GameError:
-                raise ex
+            if isinstance(ex, GameError):
+                raise
             raise GameError("Error formatting property '{}': {}".format(key, ex))
         
         return result
@@ -119,14 +136,15 @@ class YamlUtil():
         """
         names = set()
         for obj in yaml_objects:
-            if 'name' in obj:
-                name = YamlUtil.simplify_name(obj['name'])
-                if not name:
-                    raise GameError(f'The name "{obj["name"]}" is invalid')
-                elif name in names:
-                    simple = f' ({name})' if name != obj['name'] else ''
-                    raise GameError(f'The name "{obj["name"]}"{simple} is used multiple times')
-                names.add(name)
+            if 'name' not in obj:
+                raise GameError(f'Object is missing the required field "name": {obj}')
+            name = YamlUtil.simplify_name(obj['name'])
+            if not name:
+                raise GameError(f'The name "{obj["name"]}" is invalid')
+            elif name in names:
+                simple = f' ({name})' if name != obj['name'] else ''
+                raise GameError(f'The name "{obj["name"]}"{simple} is used multiple times')
+            names.add(name)
         return list(names)
 
     @staticmethod
@@ -137,6 +155,8 @@ class YamlUtil():
         @param name Name to simplify & validate
         @return simplified name, or '' if name is invalid
         """
+        if not isinstance(name, str):
+            return ''
         name = name.lower().strip()
         # replace multiple spaces with single space
         name = re.sub(' +', ' ', name)

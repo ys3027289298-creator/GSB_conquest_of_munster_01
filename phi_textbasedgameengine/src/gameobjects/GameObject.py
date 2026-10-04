@@ -1,5 +1,7 @@
 from abc import ABC, abstractmethod, abstractproperty
+from copy import deepcopy
 from typing import Any, Type, Callable, Dict, Tuple
+from game.GameError import GameError
 
 class GameObject(ABC):
 	"""
@@ -30,6 +32,16 @@ class GameObject(ABC):
 				raise AttributeError(f'Invalid or duplicate attribute {attr} in class {self.__class__.__name__}')
 			setattr(self, attr, None)
 
+	def clone(self) -> 'GameObject':
+		"""
+		Creates a copy of this object with a new unique id
+		@return A copy of this GameObject
+		"""
+		new_obj = deepcopy(self)
+		new_obj.id = GameObject._id
+		GameObject._id += 1
+		return new_obj
+
 	@staticmethod
 	def load_from_template(template: Dict[str, Any], _class: Type['GameObject']):
 		"""
@@ -50,6 +62,12 @@ class GameObject(ABC):
 		instance = _class()
 		for key in template:
 			f = _class.attributes[key][1]
-			setattr(instance, key, f(template[key]))
+			try:
+				value = f(template[key])
+			except GameError:
+				raise
+			except Exception as ex:
+				raise GameError(f'Error parsing attribute "{key}": {ex}')
+			setattr(instance, key, value)
 
 		return instance
