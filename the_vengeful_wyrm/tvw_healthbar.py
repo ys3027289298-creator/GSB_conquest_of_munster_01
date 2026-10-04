@@ -37,12 +37,12 @@ class HealthBar:
         self.color = self.colors.get(color) or self.colors["default"]
 
     def update(self) -> None:
-        self.current_value = self.entity["hit points"]
+        self.current_value = max(0, min(self.entity["hit points"], self.max_value))
 
     def draw(self) -> None:
         remaining_bars = round(self.current_value / self.max_value * self.length)
         lost_bars = self.length - remaining_bars
-        print(f"YOUR HEALTH: {self.entity["hit points"]}/{self.max_value}")
+        print(f"YOUR HEALTH: {self.current_value}/{self.max_value}")
         print(f"{self.barrier}"
               f"{self.color if self.is_colored else ''}"
               f"{remaining_bars * self.symbol_remaining}"

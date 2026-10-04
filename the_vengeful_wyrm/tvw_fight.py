@@ -15,7 +15,7 @@ def user_attack(user_D20, user_D6, user, enemy):
         print(blue("Your attack was successful! Roll for damage."))
         user_damage = user_D6(user)
         ... # attack succeeds, deal damage
-        enemy["hit points"] -= user_damage
+        enemy["hit points"] = max(0, enemy["hit points"] - user_damage)
     else:
         print(red("Your attack failed! The wyrm will attack you now."))
     return enemy["hit points"]
@@ -26,7 +26,7 @@ def enemy_attack(enemy_D20, enemy_D6, user, enemy):
         print(red("The enemy attack was successful!"))
         enemy_damage = enemy_D6(enemy) + enemy["damage"]
         ... # attack succeeds, deal damage
-        user["hit points"] -= enemy_damage  # maybe add a healthbar?
+        user["hit points"] = max(0, user["hit points"] - enemy_damage)  # maybe add a healthbar?
     else:
         print(blue("The enemy attack failed!"))
     return user["hit points"]
@@ -69,9 +69,11 @@ def fight(user, enemy, character_name):
 
     if user["hit points"] <= 0:
         print(red("The Wyrm lands it's final blow and you are defeated! ", ["reverse"]))
+        return False
     else: 
         print(green("You land your final blow on the Wyrm and hear a terrible screach as it dies.", ["reverse"]))
         print(f"'{character_name}!' You hear a tearful voice. 'You have defeated the Wyrm! Thank you for rescuing me!'")
         print(f"Behind the dead body of the Wyrm, you see your friend Dayereth.\nHappy end.")
+        return True
 
         
