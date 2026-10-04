@@ -14,22 +14,20 @@ def get_room(id):
     return ret
 
 
-def grab_object(objects):
-    objects = None
-    if objects in Room(objects):
-        return objects
-    else:
-        return 0
+def grab_object(room, name):
+    if name in room.objects:
+        return room.objects[name]
+    return None
 
 
 class Room():
-    def __init__(self, id=0, name='A room', objects={},
-        description='An empty room', neighbors={}):
+    def __init__(self, id=0, name='A room', objects=None,
+        description='An empty room', neighbors=None):
         self.id = id
         self.name = name
-        self.objects = objects
+        self.objects = objects if objects is not None else {}
         self.description = description
-        self.neighbors = neighbors
+        self.neighbors = neighbors if neighbors is not None else {}
 
     def _neighbor(self, direction):
         if direction in self.neighbors:

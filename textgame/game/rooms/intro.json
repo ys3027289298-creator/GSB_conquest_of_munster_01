@@ -1,0 +1,6 @@
+{
+  "name": "Forest Edge",
+  "description": "You stand at the edge of a dark forest. A path leads north into the trees.",
+  "objects": {"trees": "Tall oaks sway gently in the wind."},
+  "neighbors": {"n": "hall"}
+}

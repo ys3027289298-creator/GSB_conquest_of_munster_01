@@ -1,0 +1,6 @@
+{
+  "name": "Great Hall",
+  "description": "A long stone hall lit by torches. Exits lead south and east.",
+  "objects": {"torch": "The torch burns with a steady flame."},
+  "neighbors": {"s": "intro", "e": "cave"}
+}

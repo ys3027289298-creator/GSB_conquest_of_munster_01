@@ -6,6 +6,8 @@ import textwrap
 import time
 import random
 
+import Load
+
 
 class Controls(cmd.Cmd):
     prompt = '> '
@@ -20,7 +22,7 @@ class Controls(cmd.Cmd):
         self.loc = get_room('intro')
         self.look()
         self.pos()
-        self.event = Events()
+        self.event = Events(self)
         self.inventory = Inventory()
         self.Player = Player()
 
@@ -39,19 +41,24 @@ class Controls(cmd.Cmd):
             self.look()
 
     def move(self, dir):
+        if not self.Player.alive:
+            print('You are dead and cannot move.')
+            return
         newroom = self.loc._neighbor(dir)
         if newroom is None:
             print('''You cannot go this away''')
             self.look()
         else:
             self.loc = get_room(newroom)
+            self.pos()
             self.look()
  #           event.spawnAtPos()
 
     def pos(self):
-        
-        position = self.loc.name
-    
+
+        self.position = self.loc.name
+        return self.position
+
     def look(self):
 #       print((self.loc.name))
         for line in textwrap.wrap(self.loc.description, 72):
@@ -73,7 +80,6 @@ class Controls(cmd.Cmd):
     def do_e(self, args):
         '''goes east'''
         self.move('e')
-        self.move('east')
 
     def do_w(self, args):
         '''goes west'''
@@ -85,8 +91,9 @@ class Controls(cmd.Cmd):
 
     def do_get(self, args):
         '''Gets items from an area or from your bag'''
-        if self.inventory.slots[args] > 0:
-            self.player.right_hand(args)
+        if self.inventory.slots.get(args, 0) > 0:
+            self.Player.right_hand(args)
+            print(('You are now holding ' + repr(args)))
         else:
             print('You do not have this item')
 
@@ -104,19 +111,19 @@ your bag type get followed by the item in your bag, this applys to
 items in an area as well''', 72)):
             print(('', i))
 #prompts
-	  
+
     def do_sky(self, args):
         self.event.sky()
-	  
+
     def do_time(self, args):
         self.event.timeOfDay()
-	  
+
     def do_chop(self, args):
         self.objects('trees')
 
     def do_name(self, args):
         '''Prints the users name if there is one'''
-        self.player.player_name()
+        self.Player.player_name()
 
     def do_hand(self, args):
         '''Prints what is in hand'''
@@ -138,31 +145,44 @@ items in an area as well''', 72)):
         self.inventory.bag()
         self.look()
 
+    def do_save(self, args):
+        '''Saves the game'''
+        path = Load.save_game(self)
+        print(('Game saved to ' + path))
+
+    def do_load(self, args):
+        '''Loads the last saved game'''
+        if Load.load_game(self):
+            print('Game loaded.')
+            self.look()
+        else:
+            print('No saved game found.')
+
     def do_quit(self, args):
         '''Quits the game'''
         print("thank you for playing")
         return True
-    
+
 ''' def do_pos(self, args):
         print(self.loc.name) '''
 
 class Events(object):
-	
+
 	# In this events class we will handle all game events such as time,
 	# spawning of monsters, and possibly special event occurenses based on date, time of day
 	# I'm thinking of making this games time as the same as the system time.
-	
-	def __init__(self):
-		self.room = Controls.pos
+
+	def __init__(self, controls=None):
+		self.controls = controls
 		self.time = time
 
 	def timeOfDay(self):
 		print('The time is ' + time.strftime('%I:%M %p'))
-	
+
 	def sky(self):
 		timeInInt = int(time.strftime("%I"))
 		timeInAmPm = time.strftime("%p")
-		
+
 		if timeInAmPm == 'AM':
 			print("It is morning")
 		elif timeInAmPm == 'PM':
@@ -172,19 +192,20 @@ class Events(object):
 				print("It is night")
 	#-------------------------------------------------
 	# creature spawning
-	
+
 	def spawAtPos(self):
-		
+
 		chance = random.randrange(100)
-		
-		for i in chance:
-			if i <= 49:
-				print("There is a monster in the area")
-			else:
-				print("The area seems safe for now")
-				
-		
-			
+
+		if chance <= 49:
+			print("There is a monster in the area")
+			return True
+		else:
+			print("The area seems safe for now")
+			return False
+
+
+
 
 if __name__ == '__main__':
 	c = Controls()

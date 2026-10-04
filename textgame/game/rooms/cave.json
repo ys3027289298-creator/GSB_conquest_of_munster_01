@@ -1,0 +1,6 @@
+{
+  "name": "Damp Cave",
+  "description": "A cold, damp cave. The only way out is back west.",
+  "objects": {"bones": "A pile of old bones lies in the corner."},
+  "neighbors": {"w": "hall"}
+}
