@@ -29,6 +29,26 @@ class Area:
     def items(self):
         return self.__items
 
+    def addItem(self, item):
+        if (item == None):
+            raise ValueError("item should be given")
+
+        if (item in self.__items):
+            return False
+
+        self.__items.add(item)
+        return True
+
+    def removeItem(self, item):
+        if (item == None):
+            raise ValueError("item should be given")
+
+        if (item not in self.__items):
+            return False
+
+        self.__items.discard(item)
+        return True
+
     def addAdjacent(self, adjacent_area):
         self.__adjacents.add(adjacent_area)
         adjacent_area.__adjacents.add(self)
