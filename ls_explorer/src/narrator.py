@@ -1,70 +1,72 @@
-# Begun: 2017-02-07 
+# Begun: 2017-02-07
 from __future__ import print_function
-import string
-import os, sys
+import json
+import os
 import logging
+
 import utils as u
 import commands as c
+import filesystem_utils as fs
 
 logger = logging.getLogger('explorer.narrator')
 
-def narrate():
+DEFAULT_SAVE_PATH = os.path.expanduser('~/.ls_explorer_save.json')
+
+
+class GameState(object):
+    ''' Everything the game needs to remember between commands, and
+    between sessions: the simulated filesystem position and the set of
+    story events that have already fired. '''
+
+    def __init__(self, root=None, save_path=None):
+        self.vfs = fs.VirtualFileSystem(root or os.getcwd())
+        self.seen = set()
+        self.save_path = save_path or DEFAULT_SAVE_PATH
+
+    def save(self, path=None):
+        path = path or self.save_path
+        data = {
+            'root': self.vfs.root,
+            'cwd': self.vfs.cwd,
+            'seen': sorted(self.seen),
+        }
+        with open(path, 'w') as handle:
+            json.dump(data, handle, indent=2)
+        logger.info('Game saved to {}'.format(path))
+        return path
+
+    def load(self, path=None):
+        path = path or self.save_path
+        if not os.path.exists(path):
+            raise FileNotFoundError('No saved game at {}'.format(path))
+        try:
+            with open(path) as handle:
+                data = json.load(handle)
+        except ValueError as exc:
+            raise ValueError('Save file {} is corrupt: {}'.format(path, exc))
+        if os.path.realpath(data.get('root', '')) != self.vfs.root:
+            raise ValueError(
+                'Save file {} belongs to a different area'.format(path))
+        self.vfs.restore(data)
+        self.seen = set(data.get('seen', []))
+        logger.info('Game loaded from {} (at {})'.format(path, self.vfs.cwd))
+
+
+def narrate(state=None):
     ''' Simple function to provide a user prompt, accept input, and pass it
     along to the functions that recognize and fulfill commands '''
+    if state is None:
+        state = GameState()
     logger.info('Beginning narrate function')
     print("Welcome! Type '{0}quit{1}' at any time to stop the program. Type '{0}help{1}' to see your options.".format(u.colors['red'], u.colors['default']))
-    while True: 
-        user_input = raw_input('{0}> {1}'.format(u.colors['black'], u.colors['default']))
-        commands = c.extract_commands(user_input)
-        if commands is None:
+    while True:
+        user_input = input('{0}> {1}'.format(u.colors['black'], u.colors['default']))
+        parsed = c.parse(user_input)
+        if parsed is None:
             logger.info('User has specified no command words')
             continue
-        elif len(commands) == 0: # something went wrong
-            logger.error('An empty list of commands was returned.')
-        else: 
-            c.execute_command(commands, user_input)
-            continue
+        c.execute_command(parsed.action, state, parsed.raw, parsed.target)
 
-def validate_path(current_path, input_text):
-    ''' Returns any valid absolute path via user input '''
-    # first check whether current_path is valid
-    # tokenize input
-    # check for full paths in input
-    # check for valid paths from current directory
-    return None
-    
-def look(path=os.getcwd(), rest_of_text=None):
-    ''' Prints out the files and directories '''
-    logger.info('Now preparing to narrate for {}'.format(path))
-    files = [x for x in os.listdir(path) if os.path.isfile(os.path.join(path, x))]
-    dirs = [x for x in os.listdir(path) if os.path.isdir(os.path.join(path, x))]
-    if len(files) < 1:
-        print('There are no files here.')
-    else:
-        print('You see some files: {}'.format(files))
-    if len(dirs) < 1:
-        print('You can go: back the way you came')
-    else:
-        print('You can go: {}'.format(dirs))
-
-def move_path(path=os.getcwd(), rest_of_text=None):
-    ''' Changes the scope of focus to a different filepath '''
-    logger.info('Now running move_path function')
-    available_dirs = [x for x in os.listdir(path) if os.path.isdir(os.path.join(path, x))]
-    # check to see if rest_of_text contains a file or folder
-    # if file:
-    # if garbage (nothing recognized):
-    # if no text:
-    if rest_of_text == '' or rest_of_text == ' ' or not rest_of_text:
-        logger.info('User wants to move, but did not supply any further input')
-        user_input = raw_input('Where do you want to move? (Type \'look\' to see available options.) ')
-        if user_input.lower() == 'look':
-            logger.info('User chose to look at current directory: {}'.format(path))
-            look(path)
-    # if directory:
-    #if 
-    return None
-    
 
 if __name__ == '__main__':
     narrate()

@@ -1,6 +1,6 @@
 # Started: 2017-03-30
+import os
 import logging
-import filesystem_utils as f
 import narrator as n
 import utils as u
 
@@ -16,6 +16,4 @@ logger.addHandler(console_handler)
 
 if __name__ == '__main__':
     logger.info('Initialized logging')
-    n.narrate()
-
-    
+    n.narrate(n.GameState(root=os.getcwd()))
