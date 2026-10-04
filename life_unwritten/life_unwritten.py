@@ -15,15 +15,16 @@ class Character:
     backstory: str
     current_mood: str
 
-class GameState:
-    def __init__(self):
-        self.player_name = ""
-        self.mood = 50  # 0-100, 50 is neutral
-        self.day = 1
-        self.choices_made = []
-        self.characters = {}
-        self.game_over = False
-        self.reflection_count = 0
+class GameState:
+    def __init__(self):
+        self.player_name = ""
+        self.mood = 50  # 0-100, 50 is neutral
+        self.day = 1
+        self.choices_made = []
+        self.characters = {}
+        self.game_over = False
+        self.reflection_count = 0
+        self.interacted_today = set()
         
     def save_choice(self, choice_description: str, impact: str):
         self.choices_made.append({
@@ -33,10 +34,35 @@ class GameState:
             'mood_at_time': self.mood
         })
 
-class LifeUnwritten:
-    def __init__(self):
-        self.state = GameState()
-        self.initialize_characters()
+class LifeUnwritten:
+    def __init__(self, seed=None):
+        self._seed = seed
+        self._rng = random.Random(seed)
+        self.state = GameState()
+        self.initialize_characters()
+
+    def reset(self):
+        """Reset all game state so the same instance can be replayed cleanly"""
+        self._rng = random.Random(self._seed)
+        self.state = GameState()
+        self.initialize_characters()
+
+    def clamp_stat(self, value: int) -> int:
+        """Keep mood/bond attributes inside their valid 0-100 range"""
+        return max(0, min(100, value))
+
+    def prompt_choice(self, prompt: str, num_options: int) -> int:
+        """Prompt until the player enters a valid option number (1-based)"""
+        while True:
+            raw = self.get_user_input(prompt)
+            try:
+                choice_num = int(raw)
+            except ValueError:
+                print("❌ Please enter a valid number.")
+                continue
+            if 1 <= choice_num <= num_options:
+                return choice_num
+            print("❌ Invalid choice. Please try again.")
         
     def initialize_characters(self):
         """Initialize the NPCs with their relationships and backstories"""
@@ -113,10 +139,11 @@ class LifeUnwritten:
         """Get user input with a formatted prompt"""
         return input(f"\n💭 {prompt}: ").strip()
     
-    def start_game(self):
-        """Initialize the game and get player name"""
-        self.clear_screen()
-        self.print_header()
+    def start_game(self):
+        """Initialize the game and get player name"""
+        self.reset()
+        self.clear_screen()
+        self.print_header()
         
         print("\n🌟 Welcome to Life Unwritten 🌟")
         print("\nIn this journey, you'll navigate relationships, make important choices,")
@@ -169,57 +196,58 @@ The question is: where do you begin?
             print("2. 🪞 Reflect on your journey")
             print("3. 📚 Review your past choices")
             print("4. 📊 Check relationship status")
-            print("5. 🚪 End the day")
-            print("6. ❌ Quit game")
-            
-            choice = self.get_user_input("Choose an option (1-6)")
-            
-            if choice == "1":
-                self.character_interaction_menu()
-            elif choice == "2":
-                self.reflection_menu()
-            elif choice == "3":
-                self.review_choices()
-            elif choice == "4":
-                self.show_relationship_status()
-            elif choice == "5":
-                self.end_day()
-            elif choice == "6":
-                self.quit_game()
-            else:
-                print("❌ Invalid choice. Please try again.")
-                time.sleep(1)
-    
-    def character_interaction_menu(self):
-        """Show available characters to interact with"""
-        self.clear_screen()
-        self.print_header()
-        
-        print(f"\n💬 Who would you like to reach out to, {self.state.player_name}?")
-        print("\nYour relationships:")
-        
-        for i, (name, char) in enumerate(self.state.characters.items(), 1):
-            bond_status = self.get_bond_description(char.bond_level)
-            print(f"{i}. {char.name} ({char.relationship}) - {bond_status}")
-            print(f"   Last interaction: {char.last_interaction}")
-        
-        print(f"{len(self.state.characters) + 1}. 🔙 Go back")
-        
-        choice = self.get_user_input("Choose someone to contact (number)")
-        
-        try:
-            choice_num = int(choice)
-            if 1 <= choice_num <= len(self.state.characters):
-                char_name = list(self.state.characters.keys())[choice_num - 1]
-                self.interact_with_character(char_name)
-            elif choice_num == len(self.state.characters) + 1:
-                return
-            else:
-                print("❌ Invalid choice.")
-                time.sleep(1)
-        except ValueError:
-            print("❌ Please enter a valid number.")
-            time.sleep(1)
+            print("5. 🚪 End the day")
+            print("6. ❌ Quit game")
+            
+            choice = self.prompt_choice("Choose an option (1-6)", 6)
+            
+            if choice == 1:
+                self.character_interaction_menu()
+            elif choice == 2:
+                self.reflection_menu()
+            elif choice == 3:
+                self.review_choices()
+            elif choice == 4:
+                self.show_relationship_status()
+            elif choice == 5:
+                self.end_day()
+            elif choice == 6:
+                self.quit_game()
+    
+    def character_interaction_menu(self):
+        """Show available characters to interact with"""
+        while True:
+            self.clear_screen()
+            self.print_header()
+            
+            print(f"\n💬 Who would you like to reach out to, {self.state.player_name}?")
+            print("\nYour relationships:")
+            
+            for i, (name, char) in enumerate(self.state.characters.items(), 1):
+                bond_status = self.get_bond_description(char.bond_level)
+                print(f"{i}. {char.name} ({char.relationship}) - {bond_status}")
+                print(f"   Last interaction: {char.last_interaction}")
+                if name in self.state.interacted_today:
+                    print("   (Already talked today)")
+            
+            print(f"{len(self.state.characters) + 1}. 🔙 Go back")
+            
+            choice_num = self.prompt_choice(
+                "Choose someone to contact (number)",
+                len(self.state.characters) + 1,
+            )
+            
+            if choice_num == len(self.state.characters) + 1:
+                return
+            
+            char_name = list(self.state.characters.keys())[choice_num - 1]
+            if char_name in self.state.interacted_today:
+                print(f"\nYou've already talked to {char_name} today. Give them some space.")
+                time.sleep(1)
+                continue
+            
+            self.interact_with_character(char_name)
+            self.state.interacted_today.add(char_name)
     
     def get_bond_description(self, bond_level: int) -> str:
         """Convert bond level to description"""
@@ -254,21 +282,11 @@ The question is: where do you begin?
         print(f"\n'{scenarios['response']}'")
         print(f"\nHow do you respond?")
         
-        for i, option in enumerate(scenarios['options'], 1):
-            print(f"{i}. {option['text']}")
-        
-        choice = self.get_user_input("Your choice")
-        
-        try:
-            choice_num = int(choice) - 1
-            if 0 <= choice_num < len(scenarios['options']):
-                self.process_interaction_choice(character, scenarios['options'][choice_num])
-            else:
-                print("❌ Invalid choice.")
-                time.sleep(1)
-        except ValueError:
-            print("❌ Please enter a valid number.")
-            time.sleep(1)
+        for i, option in enumerate(scenarios['options'], 1):
+            print(f"{i}. {option['text']}")
+        
+        choice_num = self.prompt_choice("Your choice", len(scenarios['options']))
+        self.process_interaction_choice(character, scenarios['options'][choice_num - 1])
     
     def get_interaction_scenarios(self, character: Character) -> Dict[str, Any]:
         """Generate interaction scenarios based on character relationship"""
@@ -317,12 +335,12 @@ The question is: where do you begin?
     
     def process_interaction_choice(self, character: Character, choice: Dict[str, Any]):
         """Process the outcome of an interaction choice"""
-        old_bond = character.bond_level
-        old_mood = self.state.mood
-        
-        # Apply changes
-        character.bond_level = max(0, min(100, character.bond_level + choice['bond_change']))
-        self.state.mood = max(0, min(100, self.state.mood + choice['mood_change']))
+        old_bond = character.bond_level
+        old_mood = self.state.mood
+        
+        # Apply changes
+        character.bond_level = self.clamp_stat(character.bond_level + choice['bond_change'])
+        self.state.mood = self.clamp_stat(self.state.mood + choice['mood_change'])
         
         # Update last interaction
         character.last_interaction = choice['text']
@@ -369,7 +387,7 @@ The question is: where do you begin?
                 "I think we both need more time."
             ]
         
-        return random.choice(responses)
+        return self._rng.choice(responses)
     
     def reflection_menu(self):
         """Handle personal reflection to improve mood"""
@@ -413,39 +431,30 @@ The question is: where do you begin?
             }
         ]
         
-        reflection = random.choice(reflections)
-        
-        print(f"\n💭 Reflection: {reflection['prompt']}")
-        
-        for i, response in enumerate(reflection['responses'], 1):
-            print(f"{i}. {response}")
-        
-        choice = self.get_user_input("Choose your reflection")
-        
-        try:
-            choice_num = int(choice)
-            if 1 <= choice_num <= len(reflection['responses']):
-                mood_boost = random.randint(8, 15)
-                old_mood = self.state.mood
-                self.state.mood = min(100, self.state.mood + mood_boost)
-                self.state.reflection_count += 1
-                
-                print(f"\n✨ You feel more centered and peaceful.")
-                print(f"Mood: {old_mood} → {self.state.mood}")
-                
-                # Save the reflection
-                self.state.save_choice(
-                    f"Reflected on: {reflection['prompt']}", 
-                    f"Mood boost: +{mood_boost}"
-                )
-                
-                input("\nPress Enter to continue...")
-            else:
-                print("❌ Invalid choice.")
-                time.sleep(1)
-        except ValueError:
-            print("❌ Please enter a valid number.")
-            time.sleep(1)
+        reflection = self._rng.choice(reflections)
+        
+        print(f"\n💭 Reflection: {reflection['prompt']}")
+        
+        for i, response in enumerate(reflection['responses'], 1):
+            print(f"{i}. {response}")
+        
+        choice_num = self.prompt_choice("Choose your reflection", len(reflection['responses']))
+        
+        mood_boost = self._rng.randint(8, 15)
+        old_mood = self.state.mood
+        self.state.mood = self.clamp_stat(self.state.mood + mood_boost)
+        self.state.reflection_count += 1
+        
+        print(f"\n✨ You feel more centered and peaceful.")
+        print(f"Mood: {old_mood} → {self.state.mood}")
+        
+        # Save the reflection
+        self.state.save_choice(
+            f"Reflected on: {reflection['prompt']}", 
+            f"Mood boost: +{mood_boost}"
+        )
+        
+        input("\nPress Enter to continue...")
     
     def review_choices(self):
         """Show the player's choice history"""
@@ -515,16 +524,17 @@ The question is: where do you begin?
         print(f"Average relationship strength: {avg_bond:.1f}/100")
         print(f"Choices made today: {len([c for c in self.state.choices_made if c['day'] == self.state.day])}")
         
-        # Check for game ending conditions
-        if avg_bond >= 75 and self.state.mood >= 70:
-            self.good_ending()
-        elif avg_bond <= 20 and self.state.mood <= 30:
-            self.bad_ending()
-        elif self.state.day >= 7:  # Game ends after 7 days
-            self.neutral_ending()
-        else:
-            self.state.day += 1
-            self.state.reflection_count = 0  # Reset daily reflection limit
+        # Check for game ending conditions
+        if avg_bond >= 75 and self.state.mood >= 70:
+            self.good_ending()
+        elif avg_bond <= 30 and self.state.mood <= 40:
+            self.bad_ending()
+        elif self.state.day >= 7:  # Game ends after 7 days
+            self.neutral_ending()
+        else:
+            self.state.day += 1
+            self.state.reflection_count = 0  # Reset daily reflection limit
+            self.state.interacted_today.clear()  # Reset daily contact limit
             
             print(f"\n🌄 Tomorrow is Day {self.state.day}.")
             print("What will you choose to do?")
@@ -673,21 +683,16 @@ Keep choosing connection over isolation, understanding over judgment.
         print("Remember: In real life, it's never too late to reach out to someone you care about.")
         self.state.game_over = True
 
-def main():
-    """Main game loop"""
-    try:
-        game = LifeUnwritten()
-        game.start_game()
-        
-        while not game.state.game_over:
-            game.main_menu()
-            
-    except KeyboardInterrupt:
-        print("\n\n👋 Thanks for playing Life Unwritten!")
-        print("Your story continues in real life...")
-    except Exception as e:
-        print(f"\n❌ An error occurred: {e}")
-        print("Sometimes life has unexpected turns. Try again!")
+def main():
+    """Main game loop"""
+    try:
+        game = LifeUnwritten()
+        game.start_game()
+    except KeyboardInterrupt:
+        print("\n\n👋 Thanks for playing Life Unwritten!")
+        print("Your story continues in real life...")
+    except EOFError:
+        print("\n\n👋 Thanks for playing Life Unwritten!")
 
 if __name__ == "__main__":
     main()
