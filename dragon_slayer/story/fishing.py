@@ -50,12 +50,13 @@ def go_fishing(player, random_item):
     time.sleep(2)
     if random_item == "Dragon Ring":
         print(f"You found the {random_item}!")
-        player.has_dragon_ring = True
+        player.add_item(random_item)
     elif random_item == "potion":
         print(f"You found a {random_item} that restores half of your health and mana.")
-        player.potions += 1
+        player.add_item(random_item)
     else:
         print(f"You caught {random_item}.")
+        player.add_item(random_item)
 
 def handle_fishing(player):
     while not player.has_dragon_ring or not player.potions:

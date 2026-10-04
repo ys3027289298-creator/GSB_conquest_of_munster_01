@@ -11,6 +11,7 @@ def battle(player):
     won = determine_won(player)
     if won:
         print_ending(player)
+    return won
 
 def get_fight_dragon_choice():
     while True:
@@ -49,9 +50,9 @@ def fight_dragon(player, dragon):
         time.sleep(1)
         print_abilities(player)
         player_ability = get_ability_choice(player)
-        dragon_ability = get_dragon_ability(dragon)
         player.use_ability(player_ability, dragon)
         if dragon.is_alive:
+            dragon_ability = get_dragon_ability(dragon)
             dragon.use_ability(dragon_ability, player)
         use_potion(player)
 
