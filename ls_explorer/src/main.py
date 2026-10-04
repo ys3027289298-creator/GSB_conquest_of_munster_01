@@ -1,5 +1,10 @@
 # Started: 2017-03-30
+import os
+import sys
 import logging
+
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+
 import filesystem_utils as f
 import narrator as n
 import utils as u
@@ -17,5 +22,3 @@ logger.addHandler(console_handler)
 if __name__ == '__main__':
     logger.info('Initialized logging')
     n.narrate()
-
-    
