@@ -1344,6 +1344,7 @@ def save_game(filename="save.json"):
         "bosses": bosses,
         "pacifist_eligible": pacifist_eligible,
         "okak": OKAK,
+        "chests": {r.name: r.chest.opened for r in [dogRoom, pianoRoom, catRoom, ancientLib, lab, spiderRoom, warehouse, chargeRoom, finalRoom] if r.chest is not None},
     }
     
     with open(filename, "w", encoding="utf-8") as f:
@@ -1354,7 +1355,7 @@ def save_game(filename="save.json"):
 
 
 def load_game(filename="save.json"):
-    global name, room, hp, mp, lv, exp, gold, weapon, armor, inventory, kills, spared, dirtyHacker, pacifist_eligible, monsters, bosses
+    global name, gender, atk_bonus, mp_bonus, appearance, room, hp, mp, lv, exp, gold, weapon, armor, inventory, kills, spared, dirtyHacker, pacifist_eligible, monsters, bosses, OKAK
 
     
     if not os.path.exists(filename):
@@ -1419,8 +1420,15 @@ Error: There are only nuclear dust in save file""")
     monsters = data["monsters"]
     bosses = data["bosses"]
     OKAK = data["okak"]
-    
-    
+
+    for r in [dogRoom, pianoRoom, catRoom, ancientLib, lab, spiderRoom, warehouse, chargeRoom, finalRoom]:
+        if r.chest is not None:
+            r.chest.opened = data.get("chests", {}).get(r.name, False)
+    dogRoom.boss = doge if bosses["Doge"] else None
+    spiderRoom.boss = hugeSpooder if bosses["H U G E    S P O O D E R"] else None
+    chargeRoom.boss = terminator if bosses["TERMINATOR"] else None
+    finalRoom.boss = lordcat if bosses["Lord Cat"] else None
+
     print(f"\nFile loaded!")
     sleep(0.5)
     return True
@@ -2222,6 +2230,8 @@ def battle(enemy):
             print(f"[7] : [{inventory[7].name}]")
             try:
                 itemUse = int(input("What do you want to use?"))
+                if itemUse < 0 or itemUse >= len(inventory):
+                    raise ValueError("slot out of range")
                 if inventory[itemUse] == nothing:
                     pass
                 else:
@@ -2464,6 +2474,9 @@ def battle(enemy):
                         print("...but no anything happened...")
             elif enemy.name == "TERMINATOR NEO" or enemy.name == "Lord Kotik":
                 print("But you can't do anything")
+        else:
+            print("Invalid input!")
+            continue
             
                 
         if enemy.name == "Lord Kotik":
@@ -2567,13 +2580,14 @@ def battle(enemy):
                         shieldApplied = False
                 else:
                     if enemy.atk * dmgMP > dfnFin:
-                        hp -= int((enemy.atk - dfnFin) * dmgMP)
+                        dmg = int((enemy.atk - dfnFin) * dmgMP)
+                        hp -= dmg
                         sleep(0.4)
                         if hp <= 0:
                             gameover()
                             return False
                             break
-                        print(f"You got {int(enemy.atk - dfnFin * dmgMP)} damage. HP: {hp}/{maxHP}")
+                        print(f"You got {dmg} damage. HP: {hp}/{maxHP}")
                     else:
                         hp -= 1
                         sleep(0.4)
@@ -2713,8 +2727,10 @@ def game_loop():
                         place = int(input("Where to put it(8 - trash)?"))
                         if place == 8:
                             pass
-                        else:
+                        elif 0 <= place < len(inventory):
                             inventory[place] = drop
+                        else:
+                            print("Invalid input!")
                     except Exception as e:
                         if DEBUG_MODE:
                             print(f"Error: {e}")
@@ -2728,7 +2744,8 @@ def game_loop():
                 sleep(0.4)
                 if hp <= 0:
                     gameover()
-                print(f"You got 20 damage. HP: {hp}/{maxHP}")
+                else:
+                    print(f"You got 20 damage. HP: {hp}/{maxHP}")
             elif chance >= 53 and chance <= 100:
                 wprint("...", 1)
                 print("...but you don't find anything.")
@@ -2752,6 +2769,8 @@ def game_loop():
             
             try:
                 itemUse = int(input("What do you want to use?"))
+                if itemUse < 0 or itemUse >= len(inventory):
+                    raise ValueError("slot out of range")
                 if inventory[itemUse] == nothing:
                     pass
                 else:
@@ -2800,7 +2819,9 @@ def game_loop():
             if room == chargeRoom and check_genocide():
                 room.boss = terminatorNEO
             if room.final == False:
-                if room.puzzle is not None:
+                if not room.nextRoom:
+                    print("There is no way forward.")
+                elif room.puzzle is not None:
                     print("To proceed, you must solve a puzzle!")
                     print(f"Puzzle: {room.puzzle.question}")
                     
@@ -3124,6 +3145,8 @@ Unknown Error""")
             OKAK = True
             name = "окак"
             save_game()
+        else:
+            print("Invalid input!")
 
             
 
