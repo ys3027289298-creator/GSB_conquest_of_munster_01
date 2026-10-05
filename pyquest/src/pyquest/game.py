@@ -3,7 +3,8 @@ import sys
 import xml.etree.ElementTree as ET
 
 from pyquest.script_engine import Script, ScriptEngine, QuestValue
-from pyquest.world_model import QuestObject
+from pyquest.world_model import (QuestObject, decode_world_value, encode_world_value,
+                                 restore_object, snapshot_object)
 
 __author__ = "Adrian Welcker"
 __copyright__ = """Copyright 2018 Adrian Welcker
@@ -49,6 +50,7 @@ class QuestGame:
             exit(127)
 
         tmp = game.read()
+        game.close()
         game_txt = tmp.decode('utf-8', errors='ignore')
         while game_txt[0] != '<':
             game_txt = game_txt[1:]
@@ -124,13 +126,52 @@ class QuestGame:
             print("Done traversing ASLX/XML tree.")
 
         self.script_engine.prep()
+        self._started = False
+        self._initial_state = self.save_state()
 
     def run(self):
+        if self._started:
+            # The startup event must not fire twice for the same playthrough.
+            # Call reset() first to replay the game from the beginning.
+            return
+        self._started = True
         print("Welcome to", self.name, "by", self.author, "version", self.version)
         if isinstance(self.startup, Script):
             self.startup()
         elif self.startup is not None:
             print(self.startup)
+
+    def save_state(self):
+        """Snapshot the whole world: object attributes, script variables and
+        fired one-shot events. The returned data is plain (deep-copied) data."""
+        objects = {}
+        for name, obj in self.objects.items():
+            if obj is self:
+                continue
+            objects[name] = snapshot_object(obj)
+        return {
+            "objects": objects,
+            "variables": encode_world_value(self.script_engine.export_variables()),
+            "events": sorted(self.script_engine.events_fired),
+            "started": bool(self._started),
+        }
+
+    def load_state(self, state):
+        """Restore a snapshot produced by save_state."""
+        identities = dict(self.objects)
+        for name, data in state["objects"].items():
+            if name not in self.objects:
+                raise KeyError("Cannot load state: object '{}' does not exist "
+                               "in this game".format(name))
+            restore_object(self.objects[name], data, identities)
+        self.script_engine.import_variables(decode_world_value(state["variables"], identities))
+        self.script_engine.events_fired = set(state["events"])
+        self._started = state["started"]
+
+    def reset(self):
+        """Restore the world to its initial state so the game can be replayed."""
+        self.script_engine.reset()
+        self.load_state(self._initial_state)
 
     def create_object(self, tag, parent_obj=None):
         attributes = {
