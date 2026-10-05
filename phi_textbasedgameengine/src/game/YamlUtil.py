@@ -24,24 +24,40 @@ class YamlUtil():
         @return a list of all yaml objects loaded from the file, & included files
         """
         objects = []
-        loaded = [] # List of files we have already loaded
-        filestack = [filename] # Keep track of files we still need to load
-        while len(filestack) > 0:
-            # Get the next file to parse, skip if already done
-            fname = filestack[-1]
-            del filestack[-1]
+        loaded = set() # Set of files we have already fully loaded
+        loading = [] # Stack of files currently being loaded (cycle detection)
+
+        def load_file(fname):
             if fname in loaded:
-                print("'{}' already loaded, skipping...".format(fname))
-                continue
-            
-            # Get the object and add to our object list
+                return # Already loaded, skip duplicates
+            if fname in loading:
+                cycle = loading[loading.index(fname):] + [fname]
+                raise GameError('Circular include detected: {}'.format(' -> '.join(cycle)))
+            loading.append(fname)
             obj = YamlUtil.get_yaml_object(fname)
-            loaded.append( fname )
-            # If we include other files, add them to the stack
+            if obj is None:
+                obj = {}
+            if not isinstance(obj, dict):
+                loading.pop()
+                raise GameError("Expected a yaml object in '{}', got: {}".format(fname, type(obj).__name__))
+            # If we include other files, load them first (relative to this file)
             if 'include' in obj:
-                filestack.extend( obj['include'] )
+                includes = obj['include']
                 del obj['include'] # Remove includes from our yaml object
-            objects.append( obj )
+                if not isinstance(includes, list):
+                    loading.pop()
+                    raise GameError("'include' in '{}' must be a list of filenames".format(fname))
+                for include in includes:
+                    if not isinstance(include, str):
+                        loading.pop()
+                        raise GameError("'include' in '{}' must be a list of filenames".format(fname))
+                    include_path = include if path.isabs(include) else path.join(path.dirname(fname), include)
+                    load_file(include_path)
+            loading.pop()
+            loaded.add(fname)
+            objects.append(obj)
+
+        load_file(filename)
         return objects
 
     @staticmethod
@@ -50,11 +66,15 @@ class YamlUtil():
         Wrapper method for yaml.safe_load(), loads an object from a yaml file
         @param filename the name of the file to load from
         @return a python object representing the yaml file
+        @throws GameError if the file does not exist or contains invalid yaml
         """
-        with open( filename, 'r' ) as stream:
-            data = yaml.safe_load( stream )
-            print('loaded:', data)
-            return data
+        if not path.isfile(filename):
+            raise GameError("Could not find yaml file '{}'".format(filename))
+        try:
+            with open( filename, 'r' ) as stream:
+                return yaml.safe_load( stream )
+        except yaml.YAMLError as ex:
+            raise GameError("Error parsing yaml file '{}': {}".format(filename, ex))
 
     @staticmethod
     def get_yaml_filename(directory : str, name_prefix : str) -> str:
@@ -103,8 +123,8 @@ class YamlUtil():
             else:
                 raise GameError("'{}' is a required field, but no value was provided".format(key))
         except Exception as ex:
-            if ex is GameError:
-                raise ex
+            if isinstance(ex, GameError):
+                raise
             raise GameError("Error formatting property '{}': {}".format(key, ex))
         
         return result

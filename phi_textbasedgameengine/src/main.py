@@ -23,7 +23,7 @@ if __name__ == '__main__':
         game = Game.load_game(args.game)
         if args.compile:
             with open(args.compile, 'wb') as file:
-                pickle.dump(file, game)
+                pickle.dump(game, file)
             print(f'Successfully created {args.compile}')
     elif os.path.isfile(args.game):
         # TODO: pickle is insecure and prone to tampering, alternatives?

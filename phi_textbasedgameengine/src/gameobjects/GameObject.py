@@ -1,5 +1,6 @@
 from abc import ABC, abstractmethod, abstractproperty
 from typing import Any, Type, Callable, Dict, Tuple
+from game.GameError import GameError
 
 class GameObject(ABC):
 	"""
@@ -50,6 +51,11 @@ class GameObject(ABC):
 		instance = _class()
 		for key in template:
 			f = _class.attributes[key][1]
-			setattr(instance, key, f(template[key]))
+			try:
+				setattr(instance, key, f(template[key]))
+			except GameError:
+				raise
+			except Exception as ex:
+				raise GameError(f'Error parsing attribute "{key}" of {_class.__name__}: {ex}')
 
 		return instance

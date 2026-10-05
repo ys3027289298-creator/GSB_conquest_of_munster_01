@@ -1,17 +1,68 @@
 from gameobjects.GameObject import GameObject
-from typing import Optional, Callable, List, Dict, Any
+from typing import Optional, Callable, List, Dict, Any, Tuple, Type
+from game.GameError import GameError
 
 class GameContext():
-	def __init__(self):
+	def __init__(self, templates: Optional[Dict[str, Tuple[Type[GameObject], Dict[str, Any]]]] = None):
 		self.objects: Dict[int, GameObject] = {}
+		self.templates: Dict[str, Tuple[Type[GameObject], Dict[str, Any]]] = dict(templates or {})
+		self.messages: List[str] = []
 
-	def add(self, obj: GameObject) -> None:
+	def add(self, obj: GameObject) -> bool:
 		"""
 		Add a gameObject to the current context
 		@param obj The object to add
+		@return True if the object was added, False if an object with the
+				same id was already present
 		"""
 		assert isinstance(obj, GameObject), "Only GameObjects can be added to context"
+		if obj.id in self.objects:
+			return False
 		self.objects[obj.id] = obj
+		return True
+
+	def spawn(self, name: str) -> GameObject:
+		"""
+		Spawns a new instance of a named object template into this context
+		@param name The (simplified) name of the object template
+		@return The newly spawned GameObject
+		@throws GameError if no template with that name exists
+		"""
+		if name not in self.templates:
+			raise GameError(f'Cannot spawn unknown object "{name}"')
+		_class, template = self.templates[name]
+		obj = GameObject.load_from_template(template, _class)
+		self.add(obj)
+		return obj
+
+	def send(self, message: str) -> None:
+		"""
+		Sends a message to the entity interacting with the context
+		(e.g. the player), recording it for delivery/display
+		@param message The message to send
+		"""
+		self.messages.append(message)
+
+	def clear(self) -> List[GameObject]:
+		"""
+		Removes every object from the context
+		@return The objects that were removed
+		"""
+		removed = list(self.objects.values())
+		self.objects = {}
+		return removed
+
+	def enter(self, objects: Optional[List[GameObject]] = None) -> None:
+		"""
+		Switches the context to a new area: removes all objects currently in
+		the context (so they can no longer be acted upon) and optionally
+		populates it with the objects of the area entered
+		@param objects GameObjects present in the area entered
+		"""
+		self.clear()
+		if objects:
+			for obj in objects:
+				self.add(obj)
 
 	def destroy(self, obj: GameObject) -> bool:
 		"""
