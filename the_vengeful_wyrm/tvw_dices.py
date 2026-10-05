@@ -14,20 +14,25 @@ Module for the different functions for the different dices
 
 from random import randint
 
+def _roll(sides, rng=None):
+    if rng is None:
+        return randint(1, sides)
+    return rng.randint(1, sides)
+
 """ User's dices """
 # D6: dice with 6 sides
 
-def user_D6(user):
+def user_D6(user, rng=None):
     while True:
         try:
             roll = input("To roll a D6 dice type anything: ")
             if roll:
-                user_d6 = randint(1, 6)
+                user_d6 = _roll(6, rng)
             else:
                 raise ValueError("Empty input")   
         except ValueError:
             print("You did not type anything but I'll roll for you anyways.")
-            user_d6 = randint(1, 6)
+            user_d6 = _roll(6, rng)
         
         user_damage = user_d6 + user["damage"] #adding the damage modifier
         print(f"You rolled a {user_d6}! With your additional +{user["damage"]} modifier you deal {user_damage} damage in total.\n")
@@ -40,17 +45,17 @@ def user_D6(user):
 # is a function even neccessary? just make a simple variable?
 # maybe just a normal random D6 and D20 and then adding everything in the fight/checks?
 
-def user_D20():
+def user_D20(rng=None):
     while True:
         try:
             roll = input("To roll a D20 dice type anything: ")
             if roll:
-                user_d20 = randint(1, 20)
+                user_d20 = _roll(20, rng)
             else:
                 raise ValueError("Empty input")
         except ValueError:
             print("You did not type anything but I'll roll for you anyways.")
-            user_d20 = randint(1, 20)
+            user_d20 = _roll(20, rng)
 
         print(f"You rolled a {user_d20}!")
         return user_d20
@@ -60,14 +65,14 @@ def user_D20():
 """ Enemy's dices """
 # D6: dice with 6 sides
 
-def enemy_D6(wyrm):
-    enemy_d6 = randint(1, 6)
+def enemy_D6(wyrm, rng=None):
+    enemy_d6 = _roll(6, rng)
     print(f"The Wyrm rolled a {enemy_d6} and deals {enemy_d6 + wyrm["damage"]} damage in total.")
     return enemy_d6
 
 
 # D20: dice with 20 sides
-def enemy_D20():
-    enemy_d20 = randint(1, 20)
+def enemy_D20(rng=None):
+    enemy_d20 = _roll(20, rng)
     print(f"The Wyrm rolled a {enemy_d20}!")
     return enemy_d20

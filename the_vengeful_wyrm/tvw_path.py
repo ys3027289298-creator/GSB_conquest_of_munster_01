@@ -26,22 +26,23 @@ def riddle(character_name):
     while True:
         try:
             riddle_answer = input("What is always in front of you but can't be seen?: ").lower()
-            if riddle_answer in ["the future", "future"]:
-                print("You're some clever traveler! I don't see your future, but I'm sure it is full of adventures! You may proceed.")
-                return True
-            elif not riddle_answer:
-                raise EOFError
-            else: 
-                print("Well, well, well... Another muttonheaded traveler on the road. You are not worthy of crossing my mighty bridge! ")
-                # offer the choice of strength of fighing the troll, of just end the game and try again?
-                return False
         except EOFError:
+            # input stream exhausted: no answer can be given, the path fails instead of looping forever
+            return False
+        if riddle_answer in ["the future", "future"]:
+            print("You're some clever traveler! I don't see your future, but I'm sure it is full of adventures! You may proceed.")
+            return True
+        elif not riddle_answer:
             print("Silence is not the right answer, think again and write your answer clearly!")
+        else: 
+            print("Well, well, well... Another muttonheaded traveler on the road. You are not worthy of crossing my mighty bridge! ")
+            # offer the choice of strength of fighing the troll, of just end the game and try again?
+            return False
 
-def river(character_name, user): 
+def river(character_name, user, rng=None): 
     print(f"You chose the path of strength, {character_name}. You make you way to the river and proceed to swim through it.")
     print("To do that you need to make a skill check and roll a D20.")
-    skill_check = user_D20()
+    skill_check = user_D20(rng=rng)
     if skill_check + user["athletics"] > 10: # skill check succeeds
         print(f"With your athletics modifier of +{user["athletics"]} is your total {skill_check + user["athletics"]}. Success!\n")
         print("You are a skillful master of the water and glide through it like a fish.")

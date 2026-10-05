@@ -64,7 +64,7 @@ original_wyrm = {
 }
 
 
-def the_vengeful_wyrm():
+def the_vengeful_wyrm(rng=None):
     characters = copy.deepcopy(original_characters) # creates a deep copy of nested dictionairy
     wyrm = dict(original_wyrm) # here a "shallow" copy is sufficient, since wyrm is a simple dictionairy
 
@@ -99,12 +99,12 @@ def the_vengeful_wyrm():
                     content = forest_file.read().replace("\n", " ")
                     display_wyrm(wyrm_img, character_name)
                     print (content)
-                fight(user, enemy, character_name)
+                return fight(user, enemy, character_name, rng=rng)
             else: 
                 print(red("The trolls eats you. Game over.\n", ["reverse"]))
                 return False # returns that you lost
         else:
-            if river(character_name, user) == True:
+            if river(character_name, user, rng=rng) == True:
                 print("Once you are on the other side of the river you make your way to the forest.\n")
                 time.sleep(0.5)
                 print(yellow(f"{" Chapter Three: Wyrm's Lair ":*^40}"))
@@ -112,7 +112,7 @@ def the_vengeful_wyrm():
                     content = forest_file.read().replace("\n", " ")
                     display_wyrm(wyrm_img, character_name)
                     print (content)
-                fight(user, enemy, character_name)
+                return fight(user, enemy, character_name, rng=rng)
             else: 
                 print(red("Game over.\n", ["reverse"]))
                 return False # returns that you lost
@@ -123,8 +123,6 @@ def the_vengeful_wyrm():
         return False
     return True # returns that you won
 
-play_again = "yes"
-
 credits = {"Main character": "You", 
            "Programmer": "Elena Tomeva", 
            "Game idea": "Elena Tomeva", 
@@ -132,20 +130,26 @@ credits = {"Main character": "You",
            "Supervision": "PyLadies Vienna",
            "HealthBar code": "orkslayergamedev on GitHub"}
 
-while play_again == "yes".lower():
-    the_vengeful_wyrm()
-    play_again = input(yellow("\nDo you want to play again? yes/no: "))
-    if play_again == "no".lower():
+def ask_play_again():
+    while True:
+        play_again = input(yellow("\nDo you want to play again? yes/no: ")).lower()
+        if play_again in ("yes", "no"):
+            return play_again
+        print("I did not understand that, please answer with yes or no.")
+
+def main():
+    play_again = "yes"
+    while play_again == "yes":
+        the_vengeful_wyrm()
+        play_again = ask_play_again()
+    if play_again == "no":
         print("Thank you for playing the game.\n")
         print(f"{" Credits ":*^40}")
         time.sleep(0.1)
         for text, content in credits.items():
             print(f"{text:15}     {content:10}")
             time.sleep(0.1)
-        break
-    elif play_again == "yes".lower():
-        continue
-    else:
-        print("I did not understand that, please answer with yes or no.")
-        play_again = "yes"
+
+if __name__ == "__main__":
+    main()
 

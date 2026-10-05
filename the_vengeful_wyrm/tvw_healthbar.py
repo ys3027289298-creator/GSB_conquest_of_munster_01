@@ -40,9 +40,9 @@ class HealthBar:
         self.current_value = self.entity["hit points"]
 
     def draw(self) -> None:
-        remaining_bars = round(self.current_value / self.max_value * self.length)
+        remaining_bars = max(0, min(self.length, round(self.current_value / self.max_value * self.length)))
         lost_bars = self.length - remaining_bars
-        print(f"YOUR HEALTH: {self.entity["hit points"]}/{self.max_value}")
+        print(f"YOUR HEALTH: {max(0, self.entity['hit points'])}/{self.max_value}")
         print(f"{self.barrier}"
               f"{self.color if self.is_colored else ''}"
               f"{remaining_bars * self.symbol_remaining}"
@@ -58,7 +58,7 @@ class HealthBar_Enemy(HealthBar):
         super().__init__(entity, length, is_colored, color="purple")
 
     def draw(self) -> None:
-        remaining_bars = round(self.current_value / self.max_value * self.length)
+        remaining_bars = max(0, min(self.length, round(self.current_value / self.max_value * self.length)))
         lost_bars = self.length - remaining_bars
         print(f"WYRM's HEALTH:")
         print(f"{self.barrier}"
