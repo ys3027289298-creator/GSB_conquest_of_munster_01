@@ -35,7 +35,7 @@ class World(object) :
         else :
             self.properties[item] = value
     def __getitem__(self, item) :
-        if self.modified_properties.has_key(item) :
+        if item in self.modified_properties :
             return self.modified_properties[item]
         return self.properties.get_property(item, {"world" : self})
     def handler(self, item) :
@@ -50,7 +50,7 @@ class World(object) :
         _NewProperty.__name__ = name
         return self.define_property(_NewProperty)
     def define_property(self, prop) :
-        if self.property_types.has_key(prop.__name__) :
+        if prop.__name__ in self.property_types :
             raise Exception("Property with name %r already defined" % prop.__name__)
         self.property_types[prop.__name__] = prop
         self.inv_property_types[prop] = prop.__name__
@@ -90,7 +90,7 @@ class World(object) :
         if self.game_defined :
             raise Exception("Can't add new actions when game is defined.")
         def _to(f) :
-            if not self._activities.has_key(name) :
+            if name not in self._activities :
                 self._activities[name] = ActivityTable()
             self._activities[name].add_handler(f, **kwargs)
             return f
@@ -111,20 +111,20 @@ class World(object) :
         newworld.properties = self.properties.copy()
         newworld.property_types = self.property_types.copy()
         newworld.inv_property_types = self.inv_property_types.copy() # Property -> name
-        for k,v in self.modified_properties.iteritems() :
+        for k,v in self.modified_properties.items() :
             newworld.modified_properties[k] = v
         newworld.game_defined = self.game_defined
-        for r,data in self.relations.iteritems() :
+        for r,data in self.relations.items() :
             newworld.relations[r] = r.copy(data)
         newworld.relation_handlers = list(self.relation_handlers)
         newworld.name_to_relation = self.name_to_relation.copy()
-        for name, table in self._activities.iteritems() :
+        for name, table in self._activities.items() :
             newworld._activities[name] = table.copy()
         return newworld
     def serialize(self) :
         import pickle
         mp = []
-        for k,v in self.modified_properties.iteritems() :
+        for k,v in self.modified_properties.items() :
             mp.append((self.inv_property_types[type(k)], k.args, v))
         return pickle.dumps((mp, self.relations))
     def deserialize(self, data) :
@@ -132,38 +132,47 @@ class World(object) :
         import copy
         mp, rel = pickle.loads(data)
         newworld = copy.copy(self)
+        # The shallow copy above shares the activity helper (which is
+        # bound to this world) and the activities dictionary with this
+        # world.  Rebind them so that actions performed on the
+        # deserialized world are written back to the deserialized
+        # world itself.
+        newworld.activity = ActivityHelperObject(newworld)
+        newworld._activities = dict(self._activities)
         newworld.modified_properties = dict()
         for name, args, v in mp :
             newworld.modified_properties[self.property_types[name](*args)] = v
-        newworld.relations = rel
+        # Rebuild the relation tables (as World.copy does) so that any
+        # cached query results pickled along with them are dropped.
+        newworld.relations = dict((r, r.copy(table)) for r, table in rel.items())
         return newworld
 
     def dump(self) :
-        print "**Property table:**"
+        print("**Property table:**")
         self.properties.dump()
-        print "\n**Modified property table:**"
-        for k,v in self.modified_properties.iteritems() :
-            print "%r = %r" % (k,v)
-        print "\n**Relation tables:**"
+        print("\n**Modified property table:**")
+        for k,v in self.modified_properties.items() :
+            print("%r = %r" % (k,v))
+        print("\n**Relation tables:**")
         for r in self.relation_handlers :
-            print " * For %s *" % r.__name__
+            print(" * For %s *" % r.__name__)
             r.dump(self.relations[r])
     def make_documentation(self, escape, heading_level=1) :
         hls = str(heading_level)
-        print "<h"+hls+">World</h"+hls+">"
-        print "<p>This is the documentation for the game world object.</p>"
+        print("<h"+hls+">World</h"+hls+">")
+        print("<p>This is the documentation for the game world object.</p>")
         shls = str(heading_level+1)
-        print "<h"+shls+">Property table</h"+shls+">"
+        print("<h"+shls+">Property table</h"+shls+">")
         self.properties.make_documentation(escape, heading_level=heading_level+2)
-        print "<h"+shls+">Relation tables</h"+shls+">"
+        print("<h"+shls+">Relation tables</h"+shls+">")
         sshls = str(heading_level+2)
         for r in self.relation_handlers :
-            print "<h"+sshls+">"+escape(r.__name__)+"</h"+sshls+">"
-            print "<p><i>"+(escape(r.__doc__) or "(No documentation)")+"</i></p>"
-            print "<pre>"
+            print("<h"+sshls+">"+escape(r.__name__)+"</h"+sshls+">")
+            print("<p><i>"+(escape(r.__doc__) or "(No documentation)")+"</i></p>")
+            print("<pre>")
             r.dump(self.relations[r])
-            print "</pre>"
-        print "<h"+shls+">Activity tables</h"+shls+">"
-        for name, table in self._activities.iteritems() :
-            print "<h"+sshls+">to "+escape(name)+"</h"+sshls+">"
+            print("</pre>")
+        print("<h"+shls+">Activity tables</h"+shls+">")
+        for name, table in self._activities.items() :
+            print("<h"+sshls+">to "+escape(name)+"</h"+sshls+">")
             table.make_documentation(escape, heading_level=heading_level+3)

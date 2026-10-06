@@ -4,7 +4,7 @@
 # game.  These are assumed to be used in a player context.
 
 from textadv.core.patterns import BasicPattern
-from textadv.core.rulesystem import ActivityTable, RuleTable, AbortAction, make_rule_decorator
+from textadv.core.rulesystem import ActivityTable, RuleTable, AbortAction, ActionHandled, make_rule_decorator
 from textadv.gamesystem.utilities import str_with_objs
 
 ###
@@ -176,11 +176,11 @@ class ActionSystem(object) :
         return newat
     def make_documentation(self, escape, heading_level=1) :
         hls = str(heading_level)
-        print "<h"+hls+">Event system</h"+hls+">"
-        print "<p>This is the documentation for the event system.</p>"
+        print("<h"+hls+">Event system</h"+hls+">")
+        print("<p>This is the documentation for the event system.</p>")
         def _make_action_docs(heading_level, table, heading) :
             shls = str(heading_level+1)
-            print "<h"+shls+">"+heading+"</h"+shls+">"
+            print("<h"+shls+">"+heading+"</h"+shls+">")
             table.make_documentation(escape, heading_level=heading_level+2)
         _make_action_docs(heading_level, self.action_verify, "action_verify")
         _make_action_docs(heading_level, self.action_trybefore, "action_trybefore")
@@ -254,4 +254,4 @@ class DoInstead(Exception) :
 def verify_instead(action, ctxt) :
     """Used when it's necessary to verify another action because it's
     known that a before handler is going to throw a DoInstead."""
-    raise ActionHandled(verify_action(action, ctxt))
+    raise ActionHandled(ctxt.actionsystem.verify_action(action, ctxt))

@@ -1,4 +1,4 @@
-print "Starting server..."
+print("Starting server...")
 
 import tornado.ioloop
 import tornado.web
@@ -33,14 +33,19 @@ def add_game(package, name, auxfile_dir=None, altindex=None) :
     if altindex :
         alt_indices[name] = altindex
 
-print "Loading config file"
-execfile(os.path.join(os.path.dirname(__file__), "../..", "server_config.py"))
-print "Loaded."
+print("Loading config file")
+def _execfile(filename) :
+    """Python 3 replacement for the Python 2 execfile builtin."""
+    with open(filename) as f :
+        code = compile(f.read(), filename, "exec")
+    exec(code, globals())
+_execfile(os.path.join(os.path.dirname(__file__), "../..", "server_config.py"))
+print("Loaded.")
 
 class MainHandler(tornado.web.RequestHandler):
     def get(self) :
         self.write("<h1>Games</h1>")
-        for game in games.iterkeys() :
+        for game in games.keys() :
             self.write("<a href=\"game/"+game+"\">"+game+"</a><br>")
 
 class GameHandler(tornado.web.RequestHandler):
@@ -51,7 +56,7 @@ class GameHandler(tornado.web.RequestHandler):
         game = args[0]
         auxfile = args[1:]
         if auxfile :
-            print "retrieving for",game,auxfile
+            print("retrieving for",game,auxfile)
             try :
                 filedir = auxfiles[game]
             except KeyError :
@@ -61,7 +66,7 @@ class GameHandler(tornado.web.RequestHandler):
             prefix = os.path.commonprefix([auxfile_path, root_path])
             if prefix != root_path :
                 raise tornado.web.HTTPError(403)
-            print " ->",auxfile_path
+            print(" ->",auxfile_path)
             if not os.path.isfile(auxfile_path) :
                 raise tornado.web.HTTPError(404)
 
@@ -105,12 +110,13 @@ class GameHandler(tornado.web.RequestHandler):
             self.write("No such game")
             return
 
-        session = base64.b64encode(uuid.uuid4().bytes + uuid.uuid4().bytes).replace("+", "_")
+        session = base64.b64encode(uuid.uuid4().bytes + uuid.uuid4().bytes).decode("ascii").replace("+", "_")
 
         if self.get_argument("reload", False) :
+            import importlib
             import textadv.gameworld.basiclibrary
-            reload(textadv.gameworld.basiclibrary)
-            the_game = reload(games[game])
+            importlib.reload(textadv.gameworld.basiclibrary)
+            the_game = importlib.reload(games[game])
         else :
             the_game = games[game]
         
@@ -124,11 +130,11 @@ class GameHandler(tornado.web.RequestHandler):
         sessions[session] = t
         sessions_timer[session] = time.time()
         sessions_lock.release()
-        if alt_indices.has_key(game) :
+        if game in alt_indices :
             index_file = os.path.join(os.path.abspath(auxfiles.get(game, "")), alt_indices[game])
         else :
             index_file = 'static/index.html'
-        print index_file
+        print(index_file)
         self.render(index_file, session=session)
 
 class InputHandler(tornado.web.RequestHandler) :
@@ -136,13 +142,13 @@ class InputHandler(tornado.web.RequestHandler) :
         session = url_unescape(self.get_argument("session", None))
         sessions_lock.acquire()
         if (not session) or (session not in sessions):
-            print "ignoring input from non-session"
+            print("ignoring input from non-session")
             self.write("Error")
             self.finish()
             sessions_lock.release()
             return
         else :
-            print "getting input"
+            print("getting input")
             t = sessions[session]
             sessions_timer[session] = time.time()
             sessions_lock.release()
@@ -161,7 +167,7 @@ class OutputHandler(tornado.web.RequestHandler) :
         self.ignore_output = False
         sessions_lock.acquire()
         if (not session) or (session not in sessions):
-            print "ignoring output request for non-session"
+            print("ignoring output request for non-session")
             self.write("Error")
             self.finish()
             sessions_lock.release()
@@ -171,23 +177,23 @@ class OutputHandler(tornado.web.RequestHandler) :
             sessions_timer[session] = time.time()
             sessions_lock.release()
             self.game_thread = t
-            print "waiting for output"
+            print("waiting for output")
             def _output_handler(vars) :
                 tornado.ioloop.IOLoop.instance().add_callback(lambda : self.__finish_output(vars))
             t.game_context.io.register_wants_output(_output_handler)
     def __finish_output(self, vars) :
         self.output_lock.acquire()
         if self.ignore_output :
-            print "ignoring output, client has quit"
+            print("ignoring output, client has quit")
         else :
             self.ignore_output = True
             self.write(json_encode(vars))
-            print "wrote output."
+            print("wrote output.")
             try :
                 self.finish()
-                print "gave output."
+                print("gave output.")
             except Exception as x :
-                print "but failed to finish.  Exception:", x
+                print("but failed to finish.  Exception:", x)
         self.output_lock.release()
     def set_ignore_output(self) :
         self.output_lock.acquire()
@@ -203,7 +209,7 @@ class PingHandler(tornado.web.RequestHandler) :
         session = url_unescape(self.get_argument("session", None))
         sessions_lock.acquire()
         if (not session) or (session not in sessions):
-            print "ignoring ping from non-session"
+            print("ignoring ping from non-session")
             self.write("Error")
             sessions_lock.release()
             return
@@ -211,7 +217,7 @@ class PingHandler(tornado.web.RequestHandler) :
             t = sessions[session]
             sessions_timer[session] = time.time()
             sessions_lock.release()
-            print "handled ping"
+            print("handled ping")
 
 class StatusHandler(tornado.web.RequestHandler) :
     def get(self, args) :
@@ -221,7 +227,7 @@ class StatusHandler(tornado.web.RequestHandler) :
             if args[0] == "message" :
                 s = url_unescape(self.get_argument("session", ""))
                 m = url_unescape(self.get_argument("message", ""))
-                print "messaging",s,"with",m
+                print("messaging",s,"with",m)
                 sessions_lock.acquire()
                 if m and s in sessions :
                     try :
@@ -236,7 +242,7 @@ class StatusHandler(tornado.web.RequestHandler) :
                 a = url_unescape(self.get_argument("activity", ""))
                 args = [str(s2).strip() for s2 in url_unescape(self.get_argument("arguments", "")).split(",")]
                 sessions_lock.acquire()
-                print a,s,args
+                print(a,s,args)
                 if a and s in sessions :
                     try :
                         world = sessions[s].game_context.world
@@ -253,7 +259,7 @@ class StatusHandler(tornado.web.RequestHandler) :
                 p = url_unescape(self.get_argument("property", ""))
                 args = [str(s2).strip() for s2 in url_unescape(self.get_argument("arguments", "")).split(",")]
                 sessions_lock.acquire()
-                print p,s,args
+                print(p,s,args)
                 if p and s in sessions :
                     try :
                         world = sessions[s].game_context.world
@@ -270,7 +276,7 @@ class StatusHandler(tornado.web.RequestHandler) :
                 if v == "True" : v = True
                 if v == "False" : v = False
                 sessions_lock.acquire()
-                print p,s,args
+                print(p,s,args)
                 if p and s in sessions :
                     try :
                         world = sessions[s].game_context.world
@@ -283,12 +289,12 @@ class StatusHandler(tornado.web.RequestHandler) :
                 s = url_unescape(self.get_argument("session", ""))
                 r = url_unescape(self.get_argument("relation", ""))
                 args = [str(s2).strip() for s2 in url_unescape(self.get_argument("arguments", "")).split(",")]
-                for i in xrange(0, len(args)) :
+                for i in range(0, len(args)) :
                     if args[i] in "XYZ" :
                         args[i] = VarPattern(args[i].lower())
                 sessions_lock.acquire()
                 if r and s in sessions :
-                    print s,r,args
+                    print(s,r,args)
                     try :
                         world = sessions[s].game_context.world
                         q = world.get_relation(r)(*args)
@@ -306,12 +312,12 @@ class StatusHandler(tornado.web.RequestHandler) :
                 sessions_lock.release()
             elif args[0] == "log" :
                 s = url_unescape(self.get_argument("session", ""))
-                print "log for",s
+                print("log for",s)
                 sessions_lock.acquire()
                 if s in sessions :
                     try :
                         fn = sessions[s].logfile_name
-                        print fn
+                        print(fn)
                         with open(fn, "r") as f :
                             self.write(f.read())
                             sessions_lock.release()
@@ -379,7 +385,7 @@ class TornadoGameIO(object) :
             raise SystemExit("Thread death due to self.die.")
         command = self.commands.pop()
         if self.frontispiece :
-            print "[%s %s] %s" % (datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"),self.frontispiece,command)
+            print("[%s %s] %s" % (datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"),self.frontispiece,command))
         self.main_lock.acquire()
         if self.outfile :
             self.outfile.write("\n\n<p><b>"+self.status_vars["prompt"] + " "+command+"</b></p>")
@@ -457,16 +463,16 @@ class WatchdogThread(threading.Thread) :
             time.sleep(10)
             sessions_lock.acquire()
             to_delete = []
-            for session, t in sessions_timer.iteritems() :
+            for session, t in sessions_timer.items() :
                 if sessions[session].game_context.io.die or time.time() - t > 30 :
                     to_delete.append(session)
             for session in to_delete :
-                print "removing",session
+                print("removing",session)
                 if not sessions[session].game_context.io.die :
                     sessions[session].game_context.io.kill_io()
                 del sessions[session]
                 del sessions_timer[session]
-            print len(sessions),"clients are connected"
+            print(len(sessions),"clients are connected")
             sessions_lock.release()
 
 sessions = {}
@@ -481,5 +487,5 @@ if __name__ == "__main__":
     watchdog.daemon = True
     watchdog.start()
     application.listen(port)
-    print "Running loop."
+    print("Running loop.")
     tornado.ioloop.IOLoop.instance().start()

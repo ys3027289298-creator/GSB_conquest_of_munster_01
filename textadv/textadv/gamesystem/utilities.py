@@ -113,7 +113,7 @@ def str_with_objs(input, **kwarg) :
     the input.  So, str_with_objs("[the $o]", o="waldo person") =>
     "[the <waldo person>]"."""
     newkwarg = dict()
-    for key, value in kwarg.iteritems() :
+    for key, value in kwarg.items() :
         if " " in value :
             newkwarg[key] = "<%s>"%value
         else :
@@ -166,7 +166,7 @@ class StringEvaluator(object) :
     def add_eval_func(self, name) :
         def _add_eval_func(f) :
             if name in self.eval_functions :
-                print "Warning: adding another StringEvaluator function named",name
+                print("Warning: adding another StringEvaluator function named",name)
             self.eval_functions[name] = f
             return f
         return _add_eval_func
@@ -198,8 +198,8 @@ class StringEvaluator(object) :
                 i, val = self.__collect_structures(parsed, i)
                 code.append(val)
         except MalformedException as x :
-            print "eval_str: Offending input is"
-            print input
+            print("eval_str: Offending input is")
+            print(input)
             raise x
         evaled = self.__eval(code, context, actor)
         return "".join([str(o) for o in evaled])
@@ -324,33 +324,32 @@ class StringEvaluator(object) :
                 return [actor]
             else :
                 return [actor == self.__eval(expr[1], context, actor)]
-        elif self.eval_functions.has_key(expr[0]) :
+        elif expr[0] in self.eval_functions :
             try :
                 args = [self.__eval(x, context, actor) for x in expr[1:]]
                 return self.eval_functions[expr[0]](self, actor, context, *args)
             except TypeError :
-                print "String evaluator tried",expr
+                print("String evaluator tried",expr)
                 raise
         else :
             raise Exception("Unknown expr",expr)
     def make_documentation(self, escape, heading_level=1) :
         import inspect
         hls = str(heading_level)
-        print "<h"+hls+">String Evaluator</h"+hls+">"
-        print "<p>This is the documentation for the object which takes strings meant written in a special language and evaluates them.</p>"
+        print("<h"+hls+">String Evaluator</h"+hls+">")
+        print("<p>This is the documentation for the object which takes strings meant written in a special language and evaluates them.</p>")
         shls = str(heading_level+1)
-        print "<h"+shls+">Evaluator functions</h"+shls+">"
-        funcs = self.eval_functions.items()
-        funcs.sort(key=lambda x : x[0])
+        print("<h"+shls+">Evaluator functions</h"+shls+">")
+        funcs = sorted(self.eval_functions.items(), key=lambda x : x[0])
         for name, func in funcs :
-            print "<h"+shls+">"+escape(name)+"</h"+shls+">"
-            print "<p>"+(escape(func.__doc__) or "(No documentation).")+"</p>"
-            print "<p><b>calls</b> <tt>"+escape(func.__name__)+"</tt>"
+            print("<h"+shls+">"+escape(name)+"</h"+shls+">")
+            print("<p>"+(escape(func.__doc__) or "(No documentation).")+"</p>")
+            print("<p><b>calls</b> <tt>"+escape(func.__name__)+"</tt>")
             try :
-                print "<small>(from <tt>"+inspect.getsourcefile(func)+"</tt>)</small>"
+                print("<small>(from <tt>"+inspect.getsourcefile(func)+"</tt>)</small>")
             except TypeError :
                 pass
-            print "</p>"
+            print("</p>")
 
 
 ###
@@ -598,7 +597,7 @@ def _str_eval_reword(eval, actor, ctxt, *args) :
     word = args[0][0]
     flags = args[1:]
     is_me = (ctxt.actor == actor)
-    capitalized = word[0] in string.uppercase
+    capitalized = word[0] in string.ascii_uppercase
     rewritten = _reword(word.lower(), flags, ctxt.world, actor, is_me)
     if capitalized or "cap" in flags:
         return _cap(rewritten)
@@ -635,7 +634,7 @@ def _reword(word, flags, world, actor, is_me) :
                 return world.get_property("SubjectPronounIfMe", actor)
         elif word == "his" :
             return world.get_property("PossessivePronounIfMe", actor)
-        elif _reword_replacements.has_key(word) :
+        elif word in _reword_replacements :
             return _reword_replacements[word]
         else : # assume it's a verb
             if len(word)>3 and word[-3:]=="ies" :

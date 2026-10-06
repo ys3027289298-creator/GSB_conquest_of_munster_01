@@ -6,7 +6,11 @@
 # Exceptions: NotHandled, AbortAction, ActionHandled, MultipleResults, FinishWith, RestartWith
 # Classes: ActionTable, PropertyTable, EventTable
 
-from patterns import NoMatchException, AbstractPattern, BasicPattern, VarPattern
+from textadv.core.patterns import NoMatchException, AbstractPattern, BasicPattern, VarPattern
+
+def list_append(xs) :
+    """Flattens a list of lists into a single list."""
+    return [a for x in xs for a in x]
 
 class AbortAction(Exception) :
     """Raised when a handler wants to stop the action from being
@@ -57,7 +61,7 @@ class PropertyTable(object) :
     def set_property(self, item, value, call=False) :
         if not isinstance(item, AbstractPattern) :
             raise Exception("The only properties may be AbstractPatterns.")
-        if not self.properties.has_key(item.file_under()) :
+        if item.file_under() not in self.properties :
             self.properties[item.file_under()] = [(item, value, call)]
         else :
             self.properties[item.file_under()].insert(0, (item, value, call))
@@ -66,13 +70,13 @@ class PropertyTable(object) :
     def get_property(self, item, data) :
         if not isinstance(item, BasicPattern) :
             raise Exception("The only properties may be BasicPatterns.")
-        if not self.properties.has_key(item.file_under()) :
+        if item.file_under() not in self.properties :
             raise KeyError(item)
         for key,value,call in self.properties[item.file_under()] :
             try :
                 matches = key.match(item, data=data)
                 if call :
-                    for k,v in data.iteritems() :
+                    for k,v in data.items() :
                         matches[k] = v
                     return value(**matches)
                 else :
@@ -90,50 +94,49 @@ class PropertyTable(object) :
             return f
         return __handler
     def dump(self) :
-        for filed_under, props in self.properties.iteritems() :
-            print "hash of",filed_under,"is",hash(filed_under)
+        for filed_under, props in self.properties.items() :
+            print("hash of",filed_under,"is",hash(filed_under))
             for item, value, call in props :
                 if call :
-                    print repr(item)+" calls "+repr(value)
+                    print(repr(item)+" calls "+repr(value))
                 else :
-                    print repr(item)+" = "+repr(value)
+                    print(repr(item)+" = "+repr(value))
     def copy(self) :
         """Returns a copy that behaves like the original by making a
         copy of the properties dictionary and puting the table items
         in new lists.  Values are not physically copied."""
         newtable = PropertyTable()
         newdict = dict()
-        for t,table in self.properties.iteritems() :
+        for t,table in self.properties.items() :
             newdict[t] = list(table)
         newtable.properties = newdict
         return newtable
     def make_documentation(self, escape, heading_level=1) :
         import inspect
         hls = str(heading_level)
-        props = self.properties.keys()
-        props.sort(key=lambda x : x.__name__)
+        props = sorted(self.properties.keys(), key=lambda x : x.__name__)
         for property in props :
             table = self.properties[property]
-            print "<h"+hls+">"+escape(property.__name__)+"</h"+hls+">"
-            print "<p>"+(escape(property.__doc__) or "<i>No documentation for property.</i>")+"</p>"
+            print("<h"+hls+">"+escape(property.__name__)+"</h"+hls+">")
+            print("<p>"+(escape(property.__doc__) or "<i>No documentation for property.</i>")+"</p>")
             if table :
-                print "<ol>"
+                print("<ol>")
                 for key,value,call in table :
-                    print "<li><p>"+repr(key)
-                    print ("<b>calls</b> <tt>"+escape(value.__name__)+"</tt>") if call else ("= "+escape(repr(value)))
-                    print "</p>"
+                    print("<li><p>"+repr(key))
+                    print(("<b>calls</b> <tt>"+escape(value.__name__)+"</tt>") if call else ("= "+escape(repr(value))))
+                    print("</p>")
                     if call :
-                        print "<p>"
-                        print "<i>"+(escape(value.__doc__) or "(No documentation).")+"</i>"
+                        print("<p>")
+                        print("<i>"+(escape(value.__doc__) or "(No documentation).")+"</i>")
                         try :
-                            print "<small>(from <tt>"+inspect.getsourcefile(value)+"</tt>)</small>"
+                            print("<small>(from <tt>"+inspect.getsourcefile(value)+"</tt>)</small>")
                         except TypeError :
                             pass
-                        print "</p>"
-                    print "</li>"
-                print "</ol>"
+                        print("</p>")
+                    print("</li>")
+                print("</ol>")
             else :
-                print "<p><i>No entries</i></p>"
+                print("<p><i>No entries</i></p>")
 
 def identity(x) : return x
 
@@ -176,7 +179,7 @@ class ActivityTable(object) :
                 acc = list(ix.args)
             except FinishWith as ix :
                 self.__pop_current_disabled()
-                return self.accumulator(acc + ix.args)
+                return self.accumulator(acc + list(ix.args))
             except :
                 self.__pop_current_disabled()
                 raise
@@ -209,7 +212,7 @@ class ActivityTable(object) :
             self.actions.insert(i,f)
             self.wants_table.insert(i, wants_table)
         elif insert_after :
-            i = self.actions.index(insert_before)
+            i = self.actions.index(insert_after)
             self.actions.insert(i+1, f)
             self.wants_table.insert(i+1, wants_table)
         return f
@@ -263,34 +266,34 @@ class ActivityTable(object) :
         return newtable
     def make_documentation(self, escape, heading_level=1) :
         import inspect
-        print "<p>"
-        if self.doc : print escape(self.doc)
-        else : print "<i>(No documentation)</i>"
-        print "</p><p>"
-        if self.reverse : print "Runs in reverse-definition order."
-        else : print "Runs in definition order."
-        print "Accumulator: "
-        print "<tt>"+escape(self.accumulator.__name__)+"</tt></p>"
+        print("<p>")
+        if self.doc : print(escape(self.doc))
+        else : print("<i>(No documentation)</i>")
+        print("</p><p>")
+        if self.reverse : print("Runs in reverse-definition order.")
+        else : print("Runs in definition order.")
+        print("Accumulator: ")
+        print("<tt>"+escape(self.accumulator.__name__)+"</tt></p>")
         if self.actions :
-            print "<ol>"
+            print("<ol>")
             for handler, wt in zip(self.actions, self.wants_table) :
-                print "<li><p>"
+                print("<li><p>")
                 if handler in self.disabled :
-                    print "<b><i>DISABLED</i></b>"
-                print "<b>call</b> <tt>"+escape(handler.__name__)+"</tt>"
+                    print("<b><i>DISABLED</i></b>")
+                print("<b>call</b> <tt>"+escape(handler.__name__)+"</tt>")
                 if wt :
-                    print "<b>with table</b>"
+                    print("<b>with table</b>")
                 try :
-                    print "<small><i>(from <tt>"+inspect.getsourcefile(handler)+"</tt>)</i></small>"
+                    print("<small><i>(from <tt>"+inspect.getsourcefile(handler)+"</tt>)</i></small>")
                 except TypeError :
                     pass
-                print "</p>"
-                print "<p><i>"+(escape(handler.__doc__) or "(No documentation).")+"</i>"
-                print "</p>"
-                print "</li>"
-            print "</ol>"
+                print("</p>")
+                print("<p><i>"+(escape(handler.__doc__) or "(No documentation).")+"</i>")
+                print("</p>")
+                print("</li>")
+            print("</ol>")
         else :
-            print "<p><i>No entries</i></p>"
+            print("<p><i>No entries</i></p>")
 
 class RuleTable(object) :
     """The rule table is a bunch of patterns and function pairs.
@@ -341,12 +344,12 @@ class RuleTable(object) :
             elif insert_last :
                 actions.append((pattern, f, wants_event, wants_table))
             elif insert_before :
-                for i in xrange(0, len(actions)) :
+                for i in range(0, len(actions)) :
                     if actions[i][1] is insert_before : break
                 else : raise Exception("insert_before failed, since %r not in table." % insert_before)
                 actions.insert(i, (pattern, f, wants_event, wants_table))
             elif insert_after :
-                for i in xrange(0, len(actions)) :
+                for i in range(0, len(actions)) :
                     if actions[i][1] is insert_after : break
                 else : raise Exception("insert_after failed, since %r not in table." % insert_after)
                 actions.insert(i+1, (pattern, f, wants_event, wants_table))
@@ -360,7 +363,7 @@ class RuleTable(object) :
                 continue
             try :
                 matches = pattern.match(event, data=pattern_data)
-                for k,v in data.iteritems() :
+                for k,v in data.items() :
                     matches[k] = v
                 if wants_event :
                     if wants_table :
@@ -380,15 +383,16 @@ class RuleTable(object) :
                 self.__pop_current_disabled()
                 return self.accumulator(ix.args)
             except MultipleResults as ix :
-                acc.extend(ix.args)
+                accum.extend(ix.args)
             except RestartWith as ix :
-                acc = list(ix.args)
+                accum = list(ix.args)
             except FinishWith as ix :
                 self.__pop_current_disabled()
-                return self.accumulator(acc + ix.args)
+                return self.accumulator(accum + list(ix.args))
             except :
                 self.__pop_current_disabled()
                 raise
+        self.__pop_current_disabled()
         return self.accumulator(accum)
     def __push_current_disabled(self, to_disable) :
         self.last_current_disabled.append(self.current_disabled)
@@ -435,51 +439,51 @@ class RuleTable(object) :
                              reverse=self.reverse,
                              doc=self.doc)
         newtable.actions = dict()
-        for key, actions in self.actions.iteritems() :
+        for key, actions in self.actions.items() :
             newtable.actions[key] = list(actions)
         newtable.disabled = list(self.disabled)
         return newtable
     def make_documentation(self, escape, heading_level=1) :
         import inspect
         hls = str(heading_level)
-        print "<p>"
-        if self.doc : print escape(self.doc)
-        else : print "<i>(No documentation)</i>"
-        print "</p><p>"
-        if self.reverse : print "Runs in reverse-definition order."
-        else : print "Runs in definition order."
-        print "Accumulator: "
-        print "<tt>"+escape(self.accumulator.__name__)+"</tt></p>"
+        print("<p>")
+        if self.doc : print(escape(self.doc))
+        else : print("<i>(No documentation)</i>")
+        print("</p><p>")
+        if self.reverse : print("Runs in reverse-definition order.")
+        else : print("Runs in definition order.")
+        print("Accumulator: ")
+        print("<tt>"+escape(self.accumulator.__name__)+"</tt></p>")
         if self.actions :
-            for file_under,actions in self.actions.iteritems() :
+            for file_under,actions in self.actions.items() :
                 if file_under == "default" :
                     continue # we don't need to see anything about 'default'
-                print "<h"+hls+">"+escape(file_under.__name__)+"</h"+hls+">"
-                print "<p>"+(escape(file_under.__doc__) or "<i>No documentation for pattern.</i>")+"</p>"
-                print "<ol>"
+                print("<h"+hls+">"+escape(file_under.__name__)+"</h"+hls+">")
+                print("<p>"+(escape(file_under.__doc__) or "<i>No documentation for pattern.</i>")+"</p>")
+                print("<ol>")
                 for key,handler,we,wt in actions :
-                    print "<li><p>"
+                    print("<li><p>")
                     if handler in self.disabled :
-                        print "<b><i>DISABLED</i></b>"
-                    print escape(repr(key))#+"<br>"
-                    print "<b>calls</b> <tt>"+escape(handler.__name__)+"</tt>"
+                        print("<b><i>DISABLED</i></b>")
+                    print(escape(repr(key)))#+"<br>"
+                    print("<b>calls</b> <tt>"+escape(handler.__name__)+"</tt>")
                     withs = []
                     if we :
                         withs.append("event")
                     if wt :
                         withs.append("table")
-                    print "<b>with "+"and".join(withs)+"</b>"
+                    print("<b>with "+"and".join(withs)+"</b>")
                     try :
-                        print "<small><i>(from <tt>"+inspect.getsourcefile(handler)+"</tt>)</i></small>"
+                        print("<small><i>(from <tt>"+inspect.getsourcefile(handler)+"</tt>)</i></small>")
                     except TypeError :
                         pass
-                    print "</p>"
-                    print "<p><i>"+(escape(handler.__doc__) or "(No documentation)")+"</i>"
-                    print "</p>"
-                    print "</li>"
-                print "</ol>"
+                    print("</p>")
+                    print("<p><i>"+(escape(handler.__doc__) or "(No documentation)")+"</i>")
+                    print("</p>")
+                    print("</li>")
+                print("</ol>")
         else :
-            print "<p><i>No entries</i></p>"
+            print("<p><i>No entries</i></p>")
 
 ##
 ## A class for helping have many ActionTables and EventTables (see World)
@@ -512,71 +516,3 @@ def make_rule_decorator(table) :
             return f
         return __deco
     return _deco
-
-###
-### Tests
-###
-
-import unittest
-
-class TestEvents(unittest.TestCase) :
-    class PEnters(BasicPattern) :
-        def __init__(self, actor, place) :
-            self.args = [actor, place]
-    class PBefore(BasicPattern) :
-        def __init__(self, event) :
-            self.args = [event]
-    class PAfter(BasicPattern) :
-        def __init__(self, event) :
-            self.args = [event]
-
-    def test_table(self) :
-        table = ActionTable()
-        when = makeEventPatternDecorator(table)
-        test = []
-        x = PVar("x")
-        data = dict()
-        data[1] = 1
-        
-        @when(self.PEnters("kyle", x))
-        def action1(x, data) :
-            data[1] += 1
-            test.append("action1:"+x)
-
-        @when(self.PAfter(self.PEnters("kyle", x)))
-        @when(self.PBefore(self.PEnters("kyle", x)))
-        def action2(x, data) :
-            data[1] += 1
-            test.append("action2:"+x)
-
-        table.notify(self.PBefore(self.PEnters("kyle", "vestibule")), data=data)
-        table.notify(self.PEnters("kyle", "vestibule"), data=data)
-        table.notify(self.PAfter(self.PEnters("kyle", "vestibule")), data=data)
-        self.assertEqual(test,
-                         ["action2:vestibule","action1:vestibule", "action2:vestibule"])
-
-    def test_stopping_test(self) :
-        table = ActionTable()
-        when = makeEventPatternDecorator(table)
-        test = []
-        x = PVar("x")
-        
-        @when(self.PEnters("kyle", x))
-        def action1(x) :
-            raise AbortAction()
-            test.append("action1:"+x)
-
-        @when(self.PAfter(self.PEnters("kyle", x)))
-        @when(self.PBefore(self.PEnters("kyle", x)))
-        def action2(x) :
-            test.append("action2:"+x)
-
-        try :
-            table.notify(self.PBefore(self.PEnters("kyle", "vestibule")))
-            table.notify(self.PEnters("kyle", "vestibule"))
-            table.notify(self.PAfter(self.PEnters("kyle", "vestibule")))
-        except AbortAction :
-            self.assertEqual(test, ["action2:vestibule"])
-
-if __name__=="__main__" :
-    unittest.main(verbosity=2)

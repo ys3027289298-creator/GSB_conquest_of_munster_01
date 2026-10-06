@@ -46,8 +46,7 @@ class ClassHashByName(type) :
 ### Patterns
 ###
 
-class AbstractPattern(object) :
-    __metaclass__ = ClassHashByName
+class AbstractPattern(object, metaclass=ClassHashByName) :
     def __init__(self) :
         raise NotImplementedError("AbstractPattern is abstract (no __init__)")
     def match(self, input, matches=None, data=None) :
@@ -79,7 +78,7 @@ class VarPattern(AbstractPattern) :
         self.pattern = pattern
     def match(self, input, matches=None, data=None) :
         if matches == None : matches = dict()
-        if matches.has_key(self.varName) :
+        if self.varName in matches :
             raise DuplicateVariableException(self.varName)
         # first make the binding, so that continued matching will cause DuplicateVariableException
         matches[self.varName] = input
