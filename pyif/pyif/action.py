@@ -5,7 +5,7 @@ from . import thing
 from . import glk
 from . import message
 from .debug import log
-#from types import *
+from types import FunctionType
 
 from . import CLOTHING, CONTAINER, LIGHT, OPEN, SCENERY, SUPPORTER, TRANSPARENT, VISITED, WORN
 
@@ -184,8 +184,9 @@ def examine(story):
         return
 
     if isinstance(story.nouns[0].description, str):
-        glk.put_string(story.nouns[0].description)
-        glk.put_char("\n")
+        if story.nouns[0].description:
+            glk.put_string(story.nouns[0].description)
+            glk.put_char("\n")
     elif isinstance(story.nouns[0].description, FunctionType):
         story.nouns[0].description(story.nouns[0])
 
@@ -243,8 +244,9 @@ def look(story, implicit_look=False):
         glk.set_style(glk.STYLE_NORMAL)
 
         if not implicit_look or VISITED not in room.attributes:
-            glk.put_string(room.description)
-            glk.put_char("\n")
+            if room.description:
+                glk.put_string(room.description)
+                glk.put_char("\n")
             
         room.attributes.add(VISITED)
         
@@ -410,6 +412,12 @@ def take(story):
 
     if before_actions(story):
         return
+
+    # Already carrying it?
+    if story.nouns[0].parent is story.actor:
+        if not story.keep_silent:
+            glk.put_string(message.ALREADY_HAVE)
+        return False
 
     # We can't take sceney items, as they never appear in the list of visible
     # objects

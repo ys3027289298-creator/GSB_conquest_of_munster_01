@@ -56,6 +56,7 @@ class Thing:
         self.attributes = set()
         self.name = name
         self.article = "a"
+        self.description = ""
         self.nouns = []
         self.parent = parent
         self.children = []
@@ -116,6 +117,15 @@ class Thing:
                 if d:
                     return d
         return None
+
+    def find_all(self, noun):
+        "All descendants whose nouns include the given noun."
+        found = []
+        for c in self.children:
+            if noun in c.nouns:
+                found.append(c)
+            found.extend(c.find_all(noun))
+        return found
         
     def room(self):
         "The room that contains this thing, or self if it is a room"

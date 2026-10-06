@@ -4,11 +4,11 @@ Created on Nov 21, 2013
 @author: david
 '''
 
-from thing import Thing, Player
-import grammar
-import parser
-import action
-import glk
+from .thing import Thing, Player
+from . import grammar
+from . import parser
+from . import action
+from . import glk
 
 class Story:
 
@@ -55,6 +55,7 @@ class Story:
         self.actor = self.player
 
         self.nouns = []
+        self.action = None
         
         # State and Parser
         self.has_quit = False
