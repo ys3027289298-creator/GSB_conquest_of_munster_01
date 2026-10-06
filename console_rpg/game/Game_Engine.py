@@ -12,11 +12,7 @@ class GameMain:
     def __init__(self):
 
         # MAIN PARAMETERS
-        self.save = 0
-        self.load = 0
-        self.end = 0
-        self.dead = 0
-        self.x = 0
+        self.reset_state()
 
         # Decide to start tutorial or not
         Tutorial.tutorial_choice()
@@ -52,9 +48,6 @@ class GameMain:
             self.game_now = Game()
             x = self.game_now.x
 
-        # How many times you talked with NPC
-        self.meet_mals = {"Alchemist": [0, 0], "Guard": [0, 0], "Monk": [0, 0]}
-
         # ----------------------------------------------------------
         # START GAME
         # ----------------------------------------------------------
@@ -62,6 +55,23 @@ class GameMain:
             self.game_now.now_map.print_map(if_got_map=0)
 
         self.automatic_loop(x)
+
+    def reset_state(self):
+        # Reset all run/global state so a new game starts from a clean slate
+        self.save = 0
+        self.load = 0
+        self.end = 0
+        self.dead = 0
+        self.x = 0
+        # How many times you talked with NPC
+        self.meet_mals = {"Alchemist": [0, 0], "Guard": [0, 0], "Monk": [0, 0]}
+
+    def start_new_game(self):
+        # Start a fresh game: every piece of state from a previous run is dropped
+        self.reset_state()
+        self.game_now = Game()
+        self.x = self.game_now.x
+        return self.game_now
 
     # ----------------------------------------------------------
     # AUTOMATIC ->> THESE MUST BE CHECKED AFTER EVERY MOVE
@@ -305,7 +315,7 @@ class GameMain:
             # print("       ", enemy_time_check)
 
             # Player's hit
-            if player_time_check == player_as:
+            if player_time_check >= player_as:
                 enemy_hp = enemy_hp - player_dmg_now
                 if enemy_hp > 0:
                     print("You dealt", player_dmg_now, "damage.", enemy_name, "has", enemy_hp, "left.")
@@ -331,11 +341,13 @@ class GameMain:
                         if x in self.game_now.enemies_spawn.enemies[i]:
                             self.game_now.enemies_spawn.enemies[i].remove(x)
                     self.game_now.enemies_map[x] = "a"
+                    # The corpse must not stay on the map
+                    self.game_now.if_icon_not_to_disappear = "O"
                     break
                 player_time_begin = time()
 
             # Enemy's hit
-            if enemy_time_check == enemy_as:
+            if enemy_hp > 0 and enemy_time_check >= enemy_as:
                 player_hp = player_hp - enemy_dmg_now
                 if player_hp > 0:
                     print(enemy_name, "dealt", enemy_dmg_now, "damage. You have", player_hp, "left.")
@@ -418,6 +430,9 @@ class GameMain:
                 end_buy = 1
             for index, item in enumerate(trader.Equipment.elements):
                 if name == item.name:
+                    if not self.game_now.player.Eq1.has_space():
+                        print("Your inventory is full. You cannot buy", name + ".")
+                        break
                     if self.game_now.player.Eq1.gold >= item.value:
                         print("")
                         print("-" * 80)
@@ -485,23 +500,24 @@ class GameMain:
     def collect_items(self, x):
         quantity = len(self.game_now.items_map[x])
         if quantity == 1:
-            self.game_now.player.Eq1.add_element(self.game_now.items_map[x][0].name)
-            print(self.game_now.items_map[x][0].name, end=" ")
-            self.game_now.items_map[x].remove(self.game_now.items_map[x][0])
-            print("has been added to your inventory.")
+            item = self.game_now.items_map[x][0]
+            if self.game_now.player.Eq1.add_element(item.name):
+                self.game_now.items_map[x].remove(item)
+                print(item.name, end=" ")
+                print("has been added to your inventory.")
+            else:
+                print("Your inventory is full. You cannot take", item.name + ".")
         else:
-            while True:
-                for i in range(quantity):
-                    self.game_now.player.Eq1.add_element(self.game_now.items_map[x][i].name)
+            taken = 0
+            while self.game_now.items_map[x]:
+                item = self.game_now.items_map[x][0]
+                if not self.game_now.player.Eq1.add_element(item.name):
+                    print("Your inventory is full. Some items are left on the ground.")
+                    break
+                self.game_now.items_map[x].remove(item)
+                taken += 1
+            if taken == quantity:
                 print("Items have been added to your inventory")
-                try:
-                    n = 0
-                    for i in range(quantity):
-                        self.game_now.items_map[x].remove(self.game_now.items_map[x][i - n])
-                        n += 1
-                except IndexError:
-                    pass
-                break
 
     def show_map(self):
         if "Map" in self.game_now.player.Eq1.items_names():
@@ -579,7 +595,6 @@ class GameMain:
     def set_weapon_default(self):
         n = 0
         for item in self.game_now.player.Eq1.elements:
-            print(item.is_weapon)
             if item.is_weapon == 2:
                 n = 1
         # IF NO WEAPON IS NOW USED, THEN SET ANYONE
@@ -587,6 +602,7 @@ class GameMain:
             for item in self.game_now.player.Eq1.elements:
                 if item.is_weapon == 1:
                     item.is_weapon = 2
+                    break
         return
 
     def change_weapon(self):
@@ -615,6 +631,7 @@ class GameMain:
         for item in self.game_now.player.Eq1.elements:
             if item.is_weapon == 2:
                 item.is_weapon = 1
+        for item in self.game_now.player.Eq1.elements:
             if item.name == weapon_name:
                 item.is_weapon = 2
                 print("-" * 50)
@@ -832,13 +849,12 @@ class GameMain:
         if k > 4 and self.game_now.alchemist.quest == 0:
             reed = 0
             self.game_now.alchemist.quest = 1
-            i = 0
-            while reed < 5:
-                if self.game_now.player.Eq1.elements[i].name == "Reed":
-                    self.game_now.player.Eq1.remove_element(i)
+            for index in range(len(self.game_now.player.Eq1.elements) - 1, -1, -1):
+                if reed == 5:
+                    break
+                if self.game_now.player.Eq1.elements[index].name == "Reed":
+                    self.game_now.player.Eq1.remove_element(index)
                     reed += 1
-                    i = 0
-                i += 1
             self.meet_mals["Alchemist"][0] = 2
             self.game_now.player.Eq1.add_element("HP Potion")
             print("-" * 50)

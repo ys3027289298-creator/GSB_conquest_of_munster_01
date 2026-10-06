@@ -21,6 +21,7 @@ class NPC:
         self.quest = 0
         dialogues = {
             "Alchemist": [
+               0,
                "Hello, can you help me gathering ingredients for my new mixture?",
                "Please bring me 5 portions of Reed.",
                "You should look for it nearby the river's source.",

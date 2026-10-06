@@ -7,8 +7,14 @@ class Eq:
         self.elements = []
         self.gold = 100
 
+    def has_space(self):
+        return len(self.elements) < self.capacity
+
     def add_element(self, name):
+        if not self.has_space():
+            return False
         self.elements.append(Item(name))
+        return True
 
     def remove_element(self, i):
         self.elements.pop(i)
