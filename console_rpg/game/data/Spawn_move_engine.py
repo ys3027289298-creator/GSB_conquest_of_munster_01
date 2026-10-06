@@ -120,9 +120,10 @@ class Game:
         signs = ["/", "=", "^", "~", "#", "x"]
         first_move = [self.x + 1, self.x - 1, 15, 18]
         for i in range(100):
-            if self.now_map.map[i] not in signs and first_move:
+            if self.now_map.map[i] not in signs:
                 free_x_items.append(i)
-            if self.now_map.map[i] not in signs and first_move and self.occupied_x:
+            if (self.now_map.map[i] not in signs
+                    and i not in first_move and i not in self.occupied_x):
                 free_x_for_enemies.append(i)
 
         # ----
@@ -159,25 +160,19 @@ class Game:
         return new_x
 
     def check_possibility_to_move(self, x, check):
-        try:
-            # UNABLE TO MOVE IN RIVER, MOUNTAINS, SEA, WALL
-            if self.now_map.map[check] in ["/", "=", "^", "~"]:
-                return False
-            # UNABLE TO GO AROUND MAP - RIGHT
-            elif (x % 10) % 9 == 0 and check % 10 == 0 and x % 10 != 0:
-                return False
-            # UNABLE TO GO AROUND MAP - LEFT
-            elif x % 10 == 0 and check < x:
-                if check % 10 == 0:
-                    return True
-                return False
-            # UNABLE TO GO AROUND MAP - UP AND DOWN
-            elif check < 0 or check > 99:
-                return False
-            else:
-                return True
-        except IndexError:
+        # UNABLE TO GO BEYOND MAP BORDERS (must be checked before indexing)
+        if check < 0 or check > 99:
             return False
+        # UNABLE TO MOVE IN RIVER, MOUNTAINS, SEA, WALL
+        if self.now_map.map[check] in ["/", "=", "^", "~"]:
+            return False
+        # UNABLE TO GO AROUND MAP - RIGHT
+        if x % 10 == 9 and check % 10 == 0:
+            return False
+        # UNABLE TO GO AROUND MAP - LEFT
+        if x % 10 == 0 and check % 10 == 9:
+            return False
+        return True
 
     def move(self, x, index_changer):
         check = x + index_changer

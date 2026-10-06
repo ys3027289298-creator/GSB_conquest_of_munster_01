@@ -10,6 +10,9 @@ class Eq:
     def add_element(self, name):
         self.elements.append(Item(name))
 
+    def is_full(self):
+        return len(self.elements) >= self.capacity
+
     def remove_element(self, i):
         self.elements.pop(i)
 

@@ -327,9 +327,10 @@ class GameMain:
                     for i in range(len(enemy.Equipment.elements)):
                         self.game_now.items_map[x].append(Item(enemy.Equipment.elements[i].name))
                     # Delete enemy from this coord
-                    for i in range(len(self.game_now.enemies_spawn.enemies)):
-                        if x in self.game_now.enemies_spawn.enemies[i]:
-                            self.game_now.enemies_spawn.enemies[i].remove(x)
+                    for enemy_group in self.game_now.enemies_spawn.enemies:
+                        if x in enemy_group:
+                            enemy_group.remove(x)
+                            break
                     self.game_now.enemies_map[x] = "a"
                     break
                 player_time_begin = time()
@@ -483,25 +484,23 @@ class GameMain:
     # ----------------------------------------------------------
 
     def collect_items(self, x):
-        quantity = len(self.game_now.items_map[x])
-        if quantity == 1:
-            self.game_now.player.Eq1.add_element(self.game_now.items_map[x][0].name)
-            print(self.game_now.items_map[x][0].name, end=" ")
-            self.game_now.items_map[x].remove(self.game_now.items_map[x][0])
-            print("has been added to your inventory.")
-        else:
-            while True:
-                for i in range(quantity):
-                    self.game_now.player.Eq1.add_element(self.game_now.items_map[x][i].name)
-                print("Items have been added to your inventory")
-                try:
-                    n = 0
-                    for i in range(quantity):
-                        self.game_now.items_map[x].remove(self.game_now.items_map[x][i - n])
-                        n += 1
-                except IndexError:
-                    pass
+        ground = self.game_now.items_map[x]
+        collected = []
+        for item in list(ground):
+            if self.game_now.player.Eq1.is_full():
                 break
+            self.game_now.player.Eq1.add_element(item.name)
+            ground.remove(item)
+            collected.append(item.name)
+        if not collected:
+            print("Your inventory is full. You cannot carry anything more.")
+            return
+        if len(collected) == 1:
+            print(collected[0], "has been added to your inventory.")
+        else:
+            print("Items have been added to your inventory")
+        if ground:
+            print("Your inventory is full. Some items were left on the ground.")
 
     def show_map(self):
         if "Map" in self.game_now.player.Eq1.items_names():
@@ -579,14 +578,14 @@ class GameMain:
     def set_weapon_default(self):
         n = 0
         for item in self.game_now.player.Eq1.elements:
-            print(item.is_weapon)
             if item.is_weapon == 2:
                 n = 1
-        # IF NO WEAPON IS NOW USED, THEN SET ANYONE
+        # IF NO WEAPON IS NOW USED, THEN SET THE FIRST ONE
         if n == 0:
             for item in self.game_now.player.Eq1.elements:
                 if item.is_weapon == 1:
                     item.is_weapon = 2
+                    break
         return
 
     def change_weapon(self):
@@ -615,6 +614,7 @@ class GameMain:
         for item in self.game_now.player.Eq1.elements:
             if item.is_weapon == 2:
                 item.is_weapon = 1
+        for item in self.game_now.player.Eq1.elements:
             if item.name == weapon_name:
                 item.is_weapon = 2
                 print("-" * 50)
