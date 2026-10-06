@@ -139,9 +139,18 @@ class Game:
         for ref in snap.explored:
             self._check_room(ref)
 
+        points = dict(snap.player.allocated_points)
+        for stat in points:
+            if stat not in STAT_RULES:
+                raise InvalidSave(f"Stat inconnue : {stat!r}")
+        if not isinstance(snap.player.level, int) or isinstance(snap.player.level, bool) or snap.player.level < 1:
+            raise InvalidSave(f"Niveau invalide : {snap.player.level!r}")
+        if not isinstance(snap.player.health, int) or isinstance(snap.player.health, bool):
+            raise InvalidSave(f"Santé invalide : {snap.player.health!r}")
+
         player = Player(name=snap.player.name)
         player.level = snap.player.level
-        player.allocated_points = dict(snap.player.allocated_points)
+        player.allocated_points.update(points)
         if sum(player.allocated_points.values()) > CREATION_POINTS:     # nom réel de la constante ou de la fonction
             raise InvalidSave("Points alloués incohérents")
         player.health = min(snap.player.health, player.max_health)
@@ -174,6 +183,8 @@ class Game:
             case NewGame():
                 self.screen = Screens.CREATION
                 self.creation = CreationState()
+                self.player = None
+                self.world_state = WorldState()
             case OpenSlots(mode=mode):
                 self._previous_screen = self.screen
                 self.screen = Screens.SLOTS
@@ -224,7 +235,6 @@ class Game:
                 self._move_player(direction)
             case Explore():
                 ref = self.player.location
-                self.world_state.explored.add(ref)
                 if ref in self.world_state.explored:
                     self._messages.append(Message(key="ui.messages.already_explored"))
                 else:
@@ -233,6 +243,9 @@ class Game:
                         key=room_key(ref, "look_around"),
                         fallback_key="ui.messages.nothing_special",
                     ))
+            case ConfirmCreation():
+                # Confirmation en double (ex. double-clic avant rafraîchissement) : ignorée.
+                pass
             case OpenSlots(mode=mode):
                 self._previous_screen = self.screen
                 self.screen = Screens.SLOTS

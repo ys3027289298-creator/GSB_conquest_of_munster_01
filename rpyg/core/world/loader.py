@@ -9,9 +9,15 @@ def load_world(data_dir) -> World:
     data_dir = Path(data_dir)
     world_config = _read_json(data_dir / "world.json")
 
+    try:
+        zone_ids = world_config["zones"]
+        start_config = world_config["start"]
+    except KeyError as e:
+        raise ValueError(f"world.json incomplet : clé manquante {e}") from None
+
     raw_zones = {
         zone_id: _read_json(data_dir / "zones" / f"{zone_id}.json")
-        for zone_id in world_config["zones"]
+        for zone_id in zone_ids
     }
     entries = load_entries(raw_zones)
 
@@ -20,7 +26,7 @@ def load_world(data_dir) -> World:
         for zone_id, zone_data in raw_zones.items()
     }
 
-    start = RoomRef(world_config["start"]["zone"], world_config["start"]["room"])
+    start = RoomRef(start_config["zone"], start_config["room"])
     world = World(start=start, zones=zones)
     validate_world(world)
     return world
@@ -57,7 +63,7 @@ def load_rooms(zone_data: dict, entries: dict[str, RoomRef]) -> dict[str, Room]:
             description=room_data["description"],
             ref=RoomRef(zone_id, room_id),
             look_around=room_data.get("look_around", ""),
-            exits=load_exits(room_data.get("exits", {}), zone_id, room_id, entries),
+            exits=load_exits(room_data.get("exits") or {}, zone_id, room_id, entries),
         )
     return rooms
 
@@ -72,6 +78,12 @@ def load_exits(raw_exits: dict, zone_id: str, room_id: str,
             direction = Direction[dir_str.upper()]
         except KeyError:
             raise ValueError(f"Direction inconnue : {where}") from None
+
+        if direction in exits:
+            raise ValueError(f"Sortie dupliquée ({direction.name}) : {where}")
+
+        if not isinstance(target, dict):
+            raise ValueError(f"Cible de sortie invalide : {where}")
 
         target_zone = target.get("zone", zone_id)
         if target_zone not in entries:

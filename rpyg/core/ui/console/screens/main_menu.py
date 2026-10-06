@@ -1,6 +1,14 @@
 from core.ui.console.screens.base_screen import BaseConsoleScreen
 from core.game.actions import Quit, NewGame, LoadGame, OpenSlots, Options
 from core.ui.console import colors
+from importlib.metadata import version, PackageNotFoundError
+
+
+def app_version() -> str:
+    try:
+        return version("rpyg")
+    except PackageNotFoundError:
+        return "unknown"
 
 
 class MainMenuScreen(BaseConsoleScreen):
@@ -13,7 +21,7 @@ class MainMenuScreen(BaseConsoleScreen):
         self.centered(self.t("ui.main_menu.tagline"), colors.LIGHT_GRAY)
         self.box(
             [self.t("ui.main_menu.lore"), "", ""],
-            footer=self.t("ui.main_menu.version"),
+            footer=self.t("ui.main_menu.version", version=app_version()),
             footer_code=colors.LIGHT_GRAY,
         )
     print()

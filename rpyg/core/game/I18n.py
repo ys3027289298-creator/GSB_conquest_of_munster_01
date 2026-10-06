@@ -13,8 +13,14 @@ class Translation:
         self.fallback_translations = self._flatten(self.load_translation(self.fallback_file))
 
     def load_translation(self, file_name: str) -> dict:
-        with open(self.locales_dir / f"{file_name}.json", "r", encoding="utf-8") as f:
-            return json.load(f)
+        try:
+            with open(self.locales_dir / f"{file_name}.json", "r", encoding="utf-8") as f:
+                return json.load(f)
+        except (OSError, json.JSONDecodeError):
+            # Fichier absent ou illisible : repli sur la langue de secours.
+            if file_name == self.fallback_file:
+                return {}
+            return self.load_translation(self.fallback_file)
 
     def t(self, key: str, **params) -> str:
         text = self.translations.get(key)

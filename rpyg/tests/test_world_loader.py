@@ -218,3 +218,70 @@ def test_unknown_entry_room_raises(tmp_path, world_data):
     world_data["zones"]["cave"]["entry_room"] = "nowhere"
     with pytest.raises(ValueError, match="nowhere"):
         load_world(write_world(tmp_path, world_data))
+
+
+# --- Entrées anormales ----------------------------------------------------------
+
+def test_null_exits_means_no_exit(tmp_path, world_data):
+    # "exits": null doit être traité comme "pas de sorties", pas planter.
+    world_data["zones"]["cave"]["rooms"]["pool"]["exits"] = None
+    world = load_world(write_world(tmp_path, world_data))
+    assert world.get_room(RoomRef("cave", "pool")).exits == {}
+
+
+def test_string_exit_target_raises(tmp_path, world_data):
+    # Une cible doit être un objet {"room": ...} / {"zone": ...}, pas une chaîne.
+    world_data["zones"]["village"]["rooms"]["square"]["exits"] = {"south": "gate"}
+    with pytest.raises(ValueError, match="invalide|sortie"):
+        load_world(write_world(tmp_path, world_data))
+
+
+def test_integer_exit_target_raises(tmp_path, world_data):
+    world_data["zones"]["village"]["rooms"]["square"]["exits"] = {"south": 3}
+    with pytest.raises(ValueError):
+        load_world(write_world(tmp_path, world_data))
+
+
+def test_duplicate_direction_raises(tmp_path, world_data):
+    # Deux clés différentes ("south" / "SOUTH") qui désignent la même direction
+    # ne doivent pas en faire disparaître une silencieusement.
+    world_data["zones"]["village"]["rooms"]["square"]["exits"] = {
+        "south": {"room": "gate"},
+        "SOUTH": {"room": "gate"},
+    }
+    with pytest.raises(ValueError, match="dupliqu"):
+        load_world(write_world(tmp_path, world_data))
+
+
+@pytest.mark.parametrize("missing", ["start", "zones"])
+def test_missing_world_config_key_raises(tmp_path, world_data, missing):
+    del world_data["world"][missing]
+    with pytest.raises(ValueError):
+        load_world(write_world(tmp_path, world_data))
+
+
+def test_loaded_world_has_no_dead_ends_by_mistake(world):
+    # Les sorties chargées correspondent exactement à celles des données.
+    square = world.get_room(RoomRef("village", "square"))
+    gate = world.get_room(RoomRef("village", "gate"))
+    assert set(square.exits) == {Direction.SOUTH}
+    assert set(gate.exits) == {Direction.NORTH, Direction.SOUTH}
+
+
+def test_all_rooms_are_reachable_from_start(world):
+    # Aucune salle ne doit rester inaccessible à cause d'une sortie oubliée.
+    seen = set()
+    frontier = [world.start]
+    while frontier:
+        ref = frontier.pop()
+        if ref in seen:
+            continue
+        seen.add(ref)
+        frontier.extend(world.get_room(ref).exits.values())
+
+    expected = {
+        RoomRef(zone_id, room_id)
+        for zone_id, zone in world.zones.items()
+        for room_id in zone.rooms
+    }
+    assert seen == expected

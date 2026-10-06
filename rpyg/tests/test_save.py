@@ -205,3 +205,106 @@ def test_load_game_empty_slot_adds_message_and_keeps_state(game_with_store):
     game.load_game(7)
     assert game.snapshot() == before
     assert any(m.key == "ui.messages.invalid_save" for m in game._messages)  # ADAPTE : accès aux messages
+
+
+# ---------- Numéros de slot (bornes 1..MAX_SLOTS) ----------
+
+@pytest.mark.parametrize("slot", [0, -1, 6, 99, "1", None, True])
+def test_store_save_rejects_out_of_range_slot(snapshot, slot):
+    with pytest.raises(InvalidSave):
+        SaveStore().save(slot, snapshot)
+
+
+@pytest.mark.parametrize("slot", [0, -1, 6, 99, "1", None, True])
+def test_store_load_rejects_out_of_range_slot(slot):
+    with pytest.raises(InvalidSave):
+        SaveStore().load(slot)
+
+
+@pytest.mark.parametrize("slot", [0, -1, 6, 99])
+def test_store_delete_rejects_out_of_range_slot(slot):
+    with pytest.raises(InvalidSave):
+        SaveStore().delete(slot)
+
+
+def test_out_of_range_slot_leaves_no_file(isolated_dir, snapshot):
+    for slot in (0, -1, 6, 99):
+        with pytest.raises(InvalidSave):
+            SaveStore().save(slot, snapshot)
+    assert list(isolated_dir.iterdir()) == []
+
+
+def test_save_game_out_of_range_slot_adds_message(game_with_store):
+    game, _ = game_with_store
+    game.store = SaveStore()
+    game.save_game(99)
+    assert any(m.key == "ui.messages.save_failed" for m in game._messages)
+
+
+# ---------- Écrasement d'un slot existant ----------
+
+def test_store_overwrite_replaces_old_save(snapshot, progressed_game):
+    store = SaveStore()
+    store.save(1, snapshot)
+
+    progressed_game.handle_action(Move(Direction.SOUTH))
+    progressed_game.handle_action(Explore())
+    newer = progressed_game.snapshot()
+    store.save(1, newer)
+
+    assert store.load(1) == newer
+    assert store.load(1) != snapshot
+    assert store.list_slots() == [1]
+
+
+def test_store_overwrite_leaves_no_stale_data(isolated_dir, snapshot, progressed_game):
+    store = SaveStore()
+    store.save(1, snapshot)
+    progressed_game.handle_action(Move(Direction.SOUTH))
+    store.save(1, progressed_game.snapshot())
+
+    # Un seul fichier, et les infos affichées sont celles de la nouvelle sauvegarde.
+    assert [p.name for p in isolated_dir.iterdir()] == ["slot_1.json"]
+    info = store.list_slots_info()[0]
+    assert info.location == progressed_game.snapshot().location.room_id
+
+
+# ---------- restore : données anormales ----------
+
+def test_restore_missing_stat_uses_default(progressed_game, snapshot):
+    # Une vieille sauvegarde peut ne pas contenir toutes les stats.
+    p = snapshot.player
+    partial = tuple(kv for kv in p.allocated_points if kv[0] is not Stat.LUCK)
+    snap = replace(snapshot, player=replace(p, allocated_points=partial))
+    progressed_game.restore(snap)
+    assert progressed_game.player.allocated_points[Stat.LUCK] == 0
+    assert progressed_game.player.to_summary() is not None   # ne doit pas lever
+
+
+def test_restore_unknown_stat_raises(progressed_game, snapshot):
+    p = snapshot.player
+    bad = replace(snapshot, player=replace(p, allocated_points=p.allocated_points + (("charisme", 1),)))
+    with pytest.raises(InvalidSave):
+        progressed_game.restore(bad)
+
+
+@pytest.mark.parametrize("health", ["abc", 1.5, None, True, [10]])
+def test_restore_non_int_health_raises(progressed_game, snapshot, health):
+    bad = replace(snapshot, player=replace(snapshot.player, health=health))
+    with pytest.raises(InvalidSave):
+        progressed_game.restore(bad)
+
+
+@pytest.mark.parametrize("level", [0, -3, "2", 2.5, None])
+def test_restore_invalid_level_raises(progressed_game, snapshot, level):
+    bad = replace(snapshot, player=replace(snapshot.player, level=level))
+    with pytest.raises(InvalidSave):
+        progressed_game.restore(bad)
+
+
+def test_restore_failure_keeps_previous_state(progressed_game, snapshot):
+    before = progressed_game.snapshot()
+    bad = replace(snapshot, player=replace(snapshot.player, health="abc"))
+    with pytest.raises(InvalidSave):
+        progressed_game.restore(bad)
+    assert progressed_game.snapshot() == before
