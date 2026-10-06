@@ -1,0 +1,121 @@
+{
+  "ui": {
+    "main_menu": {
+      "title": "RPYG",
+      "tagline": "A tiny terminal RPG",
+      "lore": "Beyond the village gate, the cave hums with old stories. Pack light, walk far.",
+      "version": "Version {version}",
+      "new_game": "New game",
+      "load_game": "Load game",
+      "options": "Options",
+      "quit": "Quit"
+    },
+    "common": {
+      "back": "Back",
+      "invalid_choice": "Invalid choice, try again.",
+      "quit": "Quit",
+      "level": "Level",
+      "unavailable": "unavailable"
+    },
+    "creation": {
+      "title": "Character creation",
+      "name": "Name",
+      "name_prompt": "Enter a name:",
+      "points_left": "Points left",
+      "set_name": "Set name",
+      "confirm": "Confirm"
+    },
+    "stats": {
+      "health": "Health",
+      "strength": "Strength",
+      "speed": "Speed",
+      "luck": "Luck",
+      "abrev": { "health": "HP" }
+    },
+    "directions": {
+      "north": "Go north",
+      "south": "Go south",
+      "east": "Go east",
+      "west": "Go west"
+    },
+    "exploration": {
+      "look_around": "Look around",
+      "navigation": "Move",
+      "save_game": "Save game",
+      "back_to_menu": "Back to menu"
+    },
+    "slots": {
+      "title_load": "Load a save",
+      "title_save": "Save your game",
+      "empty": "Empty slot",
+      "unreadable": "Unreadable save"
+    },
+    "options": {
+      "title": "Options",
+      "language": "Language",
+      "language_name": {
+        "en": "English",
+        "fr": "Français",
+        "de": "Deutsch",
+        "es": "Español"
+      }
+    },
+    "messages": {
+      "already_explored": "You have already explored this place.",
+      "already_full_health": "You are already at full health.",
+      "game_loaded": "Game loaded.",
+      "game_saved": "Game saved.",
+      "healed": "You recover {amount} HP.",
+      "invalid_save": "This save cannot be read.",
+      "nothing_special": "Nothing special here.",
+      "save_failed": "The game could not be saved."
+    },
+    "presence": {
+      "main_menu": "In the main menu",
+      "creation": "Creating a character",
+      "exploring": "Exploring {room}",
+      "level": "Level {level}"
+    },
+    "bindings": {
+      "explore": "Explore",
+      "quit": "Quit"
+    }
+  },
+  "items": {
+    "wooden_sword": {
+      "name": "Wooden Sword",
+      "description": "A basic wooden sword, suitable for beginners."
+    }
+  },
+  "zones": {
+    "village": {
+      "name": "Village",
+      "description": "A small village.",
+      "rooms": {
+        "square": {
+          "name": "Square",
+          "description": "The village square.",
+          "look_around": "Children are playing."
+        },
+        "gate": {
+          "name": "Gate",
+          "description": "The village gate."
+        }
+      }
+    },
+    "cave": {
+      "name": "Cave",
+      "description": "A damp cave.",
+      "rooms": {
+        "entrance": {
+          "name": "Entrance",
+          "description": "The cave entrance."
+        },
+        "pool": {
+          "name": "Pool",
+          "description": "A pool of cold water."
+        }
+      }
+    }
+  }
+}

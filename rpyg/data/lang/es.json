@@ -1,0 +1,121 @@
+{
+  "ui": {
+    "main_menu": {
+      "title": "RPYG",
+      "tagline": "Un pequeño RPG de terminal",
+      "lore": "Más allá de la puerta del pueblo, la cueva guarda viejas historias. Viaja ligero, llega lejos.",
+      "version": "Versión {version}",
+      "new_game": "Nueva partida",
+      "load_game": "Cargar partida",
+      "options": "Opciones",
+      "quit": "Salir"
+    },
+    "common": {
+      "back": "Volver",
+      "invalid_choice": "Opción inválida, inténtalo de nuevo.",
+      "quit": "Salir",
+      "level": "Nivel",
+      "unavailable": "no disponible"
+    },
+    "creation": {
+      "title": "Creación del personaje",
+      "name": "Nombre",
+      "name_prompt": "Introduce un nombre:",
+      "points_left": "Puntos restantes",
+      "set_name": "Elegir nombre",
+      "confirm": "Confirmar"
+    },
+    "stats": {
+      "health": "Vida",
+      "strength": "Fuerza",
+      "speed": "Velocidad",
+      "luck": "Suerte",
+      "abrev": { "health": "PV" }
+    },
+    "directions": {
+      "north": "Ir al norte",
+      "south": "Ir al sur",
+      "east": "Ir al este",
+      "west": "Ir al oeste"
+    },
+    "exploration": {
+      "look_around": "Mirar alrededor",
+      "navigation": "Moverse",
+      "save_game": "Guardar partida",
+      "back_to_menu": "Volver al menú"
+    },
+    "slots": {
+      "title_load": "Cargar partida",
+      "title_save": "Guardar partida",
+      "empty": "Espacio vacío",
+      "unreadable": "Partida ilegible"
+    },
+    "options": {
+      "title": "Opciones",
+      "language": "Idioma",
+      "language_name": {
+        "en": "English",
+        "fr": "Français",
+        "de": "Deutsch",
+        "es": "Español"
+      }
+    },
+    "messages": {
+      "already_explored": "Ya has explorado este lugar.",
+      "already_full_health": "Tu vida ya está al máximo.",
+      "game_loaded": "Partida cargada.",
+      "game_saved": "Partida guardada.",
+      "healed": "Recuperas {amount} PV.",
+      "invalid_save": "Esta partida no se puede leer.",
+      "nothing_special": "No hay nada especial aquí.",
+      "save_failed": "No se pudo guardar la partida."
+    },
+    "presence": {
+      "main_menu": "En el menú principal",
+      "creation": "Creando un personaje",
+      "exploring": "Explorando {room}",
+      "level": "Nivel {level}"
+    },
+    "bindings": {
+      "explore": "Explorar",
+      "quit": "Salir"
+    }
+  },
+  "items": {
+    "wooden_sword": {
+      "name": "Espada de madera",
+      "description": "Una espada de madera básica, adecuada para principiantes."
+    }
+  },
+  "zones": {
+    "village": {
+      "name": "Pueblo",
+      "description": "Un pequeño pueblo.",
+      "rooms": {
+        "square": {
+          "name": "Plaza",
+          "description": "La plaza del pueblo.",
+          "look_around": "Unos niños juegan."
+        },
+        "gate": {
+          "name": "Puerta",
+          "description": "La puerta del pueblo."
+        }
+      }
+    },
+    "cave": {
+      "name": "Cueva",
+      "description": "Una cueva húmeda.",
+      "rooms": {
+        "entrance": {
+          "name": "Entrada",
+          "description": "La entrada de la cueva."
+        },
+        "pool": {
+          "name": "Estanque",
+          "description": "Un estanque de agua fría."
+        }
+      }
+    }
+  }
+}

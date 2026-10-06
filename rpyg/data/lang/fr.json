@@ -1,0 +1,121 @@
+{
+  "ui": {
+    "main_menu": {
+      "title": "RPYG",
+      "tagline": "Un petit RPG en terminal",
+      "lore": "Au-delà de la porte du village, la grotte murmure de vieilles histoires. Voyagez léger, allez loin.",
+      "version": "Version {version}",
+      "new_game": "Nouvelle partie",
+      "load_game": "Charger une partie",
+      "options": "Options",
+      "quit": "Quitter"
+    },
+    "common": {
+      "back": "Retour",
+      "invalid_choice": "Choix invalide, réessayez.",
+      "quit": "Quitter",
+      "level": "Niveau",
+      "unavailable": "indisponible"
+    },
+    "creation": {
+      "title": "Création du personnage",
+      "name": "Nom",
+      "name_prompt": "Entrez un nom :",
+      "points_left": "Points restants",
+      "set_name": "Choisir le nom",
+      "confirm": "Confirmer"
+    },
+    "stats": {
+      "health": "Vie",
+      "strength": "Force",
+      "speed": "Vitesse",
+      "luck": "Chance",
+      "abrev": { "health": "PV" }
+    },
+    "directions": {
+      "north": "Aller au nord",
+      "south": "Aller au sud",
+      "east": "Aller à l'est",
+      "west": "Aller à l'ouest"
+    },
+    "exploration": {
+      "look_around": "Regarder autour",
+      "navigation": "Se déplacer",
+      "save_game": "Sauvegarder",
+      "back_to_menu": "Retour au menu"
+    },
+    "slots": {
+      "title_load": "Charger une sauvegarde",
+      "title_save": "Sauvegarder la partie",
+      "empty": "Emplacement vide",
+      "unreadable": "Sauvegarde illisible"
+    },
+    "options": {
+      "title": "Options",
+      "language": "Langue",
+      "language_name": {
+        "en": "English",
+        "fr": "Français",
+        "de": "Deutsch",
+        "es": "Español"
+      }
+    },
+    "messages": {
+      "already_explored": "Vous avez déjà exploré cet endroit.",
+      "already_full_health": "Votre vie est déjà au maximum.",
+      "game_loaded": "Partie chargée.",
+      "game_saved": "Partie sauvegardée.",
+      "healed": "Vous récupérez {amount} PV.",
+      "invalid_save": "Cette sauvegarde est illisible.",
+      "nothing_special": "Rien de spécial ici.",
+      "save_failed": "La sauvegarde a échoué."
+    },
+    "presence": {
+      "main_menu": "Dans le menu principal",
+      "creation": "Création d'un personnage",
+      "exploring": "Explore {room}",
+      "level": "Niveau {level}"
+    },
+    "bindings": {
+      "explore": "Explorer",
+      "quit": "Quitter"
+    }
+  },
+  "items": {
+    "wooden_sword": {
+      "name": "Épée en bois",
+      "description": "Une épée en bois basique, adaptée aux débutants."
+    }
+  },
+  "zones": {
+    "village": {
+      "name": "Village",
+      "description": "Un petit village.",
+      "rooms": {
+        "square": {
+          "name": "Place",
+          "description": "La place du village.",
+          "look_around": "Des enfants jouent."
+        },
+        "gate": {
+          "name": "Porte",
+          "description": "La porte du village."
+        }
+      }
+    },
+    "cave": {
+      "name": "Grotte",
+      "description": "Une grotte humide.",
+      "rooms": {
+        "entrance": {
+          "name": "Entrée",
+          "description": "L'entrée de la grotte."
+        },
+        "pool": {
+          "name": "Bassin",
+          "description": "Un bassin d'eau froide."
+        }
+      }
+    }
+  }
+}

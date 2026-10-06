@@ -7,7 +7,11 @@ import argparse
 import importlib
 import logging
 from core.save.store import SaveStore
-from core.integrations.discord import DiscordIntegration
+
+try:
+    from core.integrations.discord import DiscordIntegration
+except ImportError:
+    DiscordIntegration = None
 
 log = logging.getLogger(__name__)
 logging.basicConfig(filename="rpyg.log", level=logging.INFO)
@@ -44,7 +48,7 @@ def main():
     settings = Settings.load(default_settings_path())
 
     presence = None
-    if settings.discord_integration:
+    if settings.discord_integration and DiscordIntegration is not None:
         try:
             presence = DiscordIntegration(app_id="1439725986290860132")
             presence.connect()

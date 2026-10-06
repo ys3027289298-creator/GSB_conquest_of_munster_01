@@ -6,10 +6,16 @@ from core.save.storage import MAX_SLOTS
 
 
 class SaveStore:
+    def _check_slot(self, slot: int) -> None:
+        if not isinstance(slot, int) or isinstance(slot, bool) or not 1 <= slot <= MAX_SLOTS:
+            raise InvalidSave(f"Numéro de slot invalide : {slot!r}")
+
     def save(self, slot: int, snapshot: GameSnapshot) -> None:
+        self._check_slot(slot)
         storage.write(slot, codec.encode(snapshot))
 
     def load(self, slot: int) -> GameSnapshot:
+        self._check_slot(slot)
         return codec.decode(storage.read(slot))   # lève InvalidSave
 
     def list_slots(self) -> list[int]:
@@ -38,4 +44,5 @@ class SaveStore:
         return tuple(infos)
 
     def delete(self, slot: int) -> None:
+        self._check_slot(slot)
         storage.delete(slot)

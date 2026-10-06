@@ -1,0 +1,22 @@
+{
+  "id": "village",
+  "name": "Village",
+  "description": "Un petit village.",
+  "entry_room": "square",
+  "rooms": {
+    "square": {
+      "name": "Place",
+      "description": "La place du village.",
+      "look_around": "Des enfants jouent.",
+      "exits": { "south": { "room": "gate" } }
+    },
+    "gate": {
+      "name": "Porte",
+      "description": "La porte du village.",
+      "exits": {
+        "north": { "room": "square" },
+        "south": { "zone": "cave" }
+      }
+    }
+  }
+}

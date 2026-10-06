@@ -1,0 +1,21 @@
+{
+  "id": "cave",
+  "name": "Grotte",
+  "description": "Une grotte humide.",
+  "entry_room": "entrance",
+  "rooms": {
+    "entrance": {
+      "name": "Entrée",
+      "description": "L'entrée de la grotte.",
+      "exits": {
+        "north": { "zone": "village", "room": "gate" },
+        "south": { "room": "pool" }
+      }
+    },
+    "pool": {
+      "name": "Bassin",
+      "description": "Un bassin d'eau froide.",
+      "exits": { "north": { "room": "entrance" } }
+    }
+  }
+}

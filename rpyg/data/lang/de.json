@@ -1,0 +1,121 @@
+{
+  "ui": {
+    "main_menu": {
+      "title": "RPYG",
+      "tagline": "Ein kleines Terminal-RPG",
+      "lore": "Hinter dem Dorftor erzählt die Höhle alte Geschichten. Reise leicht, geh weit.",
+      "version": "Version {version}",
+      "new_game": "Neues Spiel",
+      "load_game": "Spiel laden",
+      "options": "Optionen",
+      "quit": "Beenden"
+    },
+    "common": {
+      "back": "Zurück",
+      "invalid_choice": "Ungültige Auswahl, bitte erneut.",
+      "quit": "Beenden",
+      "level": "Stufe",
+      "unavailable": "nicht verfügbar"
+    },
+    "creation": {
+      "title": "Charaktererstellung",
+      "name": "Name",
+      "name_prompt": "Namen eingeben:",
+      "points_left": "Punkte übrig",
+      "set_name": "Name festlegen",
+      "confirm": "Bestätigen"
+    },
+    "stats": {
+      "health": "Leben",
+      "strength": "Stärke",
+      "speed": "Tempo",
+      "luck": "Glück",
+      "abrev": { "health": "LP" }
+    },
+    "directions": {
+      "north": "Nach Norden",
+      "south": "Nach Süden",
+      "east": "Nach Osten",
+      "west": "Nach Westen"
+    },
+    "exploration": {
+      "look_around": "Umschauen",
+      "navigation": "Bewegen",
+      "save_game": "Spiel speichern",
+      "back_to_menu": "Zurück zum Menü"
+    },
+    "slots": {
+      "title_load": "Spielstand laden",
+      "title_save": "Spiel speichern",
+      "empty": "Leer",
+      "unreadable": "Unlesbarer Spielstand"
+    },
+    "options": {
+      "title": "Optionen",
+      "language": "Sprache",
+      "language_name": {
+        "en": "English",
+        "fr": "Français",
+        "de": "Deutsch",
+        "es": "Español"
+      }
+    },
+    "messages": {
+      "already_explored": "Du hast diesen Ort bereits erkundet.",
+      "already_full_health": "Dein Leben ist bereits voll.",
+      "game_loaded": "Spiel geladen.",
+      "game_saved": "Spiel gespeichert.",
+      "healed": "Du erhältst {amount} LP zurück.",
+      "invalid_save": "Dieser Spielstand ist unlesbar.",
+      "nothing_special": "Hier ist nichts Besonderes.",
+      "save_failed": "Das Spiel konnte nicht gespeichert werden."
+    },
+    "presence": {
+      "main_menu": "Im Hauptmenü",
+      "creation": "Charakter wird erstellt",
+      "exploring": "Erkundet {room}",
+      "level": "Stufe {level}"
+    },
+    "bindings": {
+      "explore": "Erkunden",
+      "quit": "Beenden"
+    }
+  },
+  "items": {
+    "wooden_sword": {
+      "name": "Holzschwert",
+      "description": "Ein einfaches Holzschwert, ideal für Anfänger."
+    }
+  },
+  "zones": {
+    "village": {
+      "name": "Dorf",
+      "description": "Ein kleines Dorf.",
+      "rooms": {
+        "square": {
+          "name": "Platz",
+          "description": "Der Dorfplatz.",
+          "look_around": "Kinder spielen."
+        },
+        "gate": {
+          "name": "Tor",
+          "description": "Das Dorftor."
+        }
+      }
+    },
+    "cave": {
+      "name": "Höhle",
+      "description": "Eine feuchte Höhle.",
+      "rooms": {
+        "entrance": {
+          "name": "Eingang",
+          "description": "Der Höhleneingang."
+        },
+        "pool": {
+          "name": "Becken",
+          "description": "Ein Becken mit kaltem Wasser."
+        }
+      }
+    }
+  }
+}
