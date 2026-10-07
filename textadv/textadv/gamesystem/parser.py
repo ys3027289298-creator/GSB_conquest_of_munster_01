@@ -152,7 +152,7 @@ class Parser(object) :
         self.current_objects = dict()
         self.current_words = dict()
         self.current_names = dict()
-        for parser, kind in self.object_classes.iteritems() :
+        for parser, kind in self.object_classes.items() :
             if with_objs and parser in with_objs :
                 self.current_objects[parser] = with_objs[parser]
             else :
@@ -173,7 +173,7 @@ class Parser(object) :
         they make a typo."""
         self.KNOWN_WORDS.extend(words)
     def __is_word_for_thing(self, word) :
-        for word_list in self.current_words.itervalues() :
+        for word_list in self.current_words.values() :
             for adjs,nouns in word_list :
                 if word in adjs or word in nouns :
                     return True
@@ -232,7 +232,7 @@ class Parser(object) :
             for tp in textparts :
                 parts.append(tp.lower().split("/"))
             lastindex = match.end()
-            if self.subparsers.has_key(match.group(1).lower()) :
+            if match.group(1).lower() in self.subparsers :
                 csp = CallSubParser(match.group(1), " ".join(match.group(2).split()))
                 parts.append(csp)
             else :
@@ -340,6 +340,21 @@ class Parser(object) :
         action_verifier to get whether things work.  Returns (action,
         did_disambiguate) pair, where did_disambiguate represents
         whether there were multiple logical options."""
+        # Collapse distinct parses which produce the same action (for
+        # instance, when two grammar rules overlap).  Otherwise the
+        # identical options would make a unique command look
+        # ambiguous.  When two parses agree, keep the higher scoring
+        # (more specific) one.
+        unique_results = []
+        for r in results :
+            for i, u in enumerate(unique_results) :
+                if u.value == r.value :
+                    if r.score > u.score :
+                        unique_results[i] = r
+                    break
+            else :
+                unique_results.append(r)
+        results = unique_results
         if len(results) == 1 : # no need to disambiguate
             return results[0].value, False
         else : # it's ambiguous!
@@ -407,7 +422,7 @@ class Parser(object) :
                 for a,curr_poss in zip(r.args, poss_args) :
                     if a not in curr_poss :
                         curr_poss.append(a)
-                for i in xrange(0, len(poss_subparsers)) : # part of a hack to get the 'subparser'
+                for i in range(0, len(poss_subparsers)) : # part of a hack to get the 'subparser'
                     s = sup.args
                     if more_disambig_flag[i] :
                         if not poss_subparsers[i] :
@@ -420,7 +435,7 @@ class Parser(object) :
                         elif s[i][1] != poss_subparsers[i] :
                             raise Exception("Conflicting subparsers", s[i][1], poss_subparsers[i])
             constructed_args = []
-            for poss, disamb_more, sp, i in zip(poss_args, more_disambig_flag, poss_subparsers, xrange(0, len(poss_args))) :
+            for poss, disamb_more, sp, i in zip(poss_args, more_disambig_flag, poss_subparsers, range(0, len(poss_args))) :
                 var = next_var[0]
                 next_var[0] = chr(ord(var) + 1)
                 if len(poss) == 1 : # no need to disambiguate this slot
@@ -444,7 +459,7 @@ class Parser(object) :
     def copy(self) :
         newparser = Parser()
         newparser.KNOWN_WORDS = list(self.KNOWN_WORDS)
-        for name, table in self.subparsers.iteritems() :
+        for name, table in self.subparsers.items() :
             newparser.subparsers[name] = table.copy()
         newparser.parse_thing = self.parse_thing.copy()
         newparser.object_classes = self.object_classes.copy()
@@ -452,10 +467,10 @@ class Parser(object) :
     def make_documentation(self, escape, heading_level=1) :
         hls = str(heading_level)
         shls = str(heading_level+1)
-        print "<h"+hls+">Parser</h"+hls+">"
-        print "<p>This is the documentation for the parser.</p>"
-        for spn in self.subparsers.iterkeys() :
-            print "<h"+shls+">"+escape(spn)+"</h"+shls+">"
+        print("<h"+hls+">Parser</h"+hls+">")
+        print("<p>This is the documentation for the parser.</p>")
+        for spn in self.subparsers.keys() :
+            print("<h"+shls+">"+escape(spn)+"</h"+shls+">")
             self.subparsers[spn].make_documentation(escape, heading_level=heading_level+2)
 
 
@@ -548,7 +563,7 @@ def default_parse_text(parser, var, input, i, ctxt, actor, next) :
     """Parses any number of words, stopping at or before the end of
     the input."""
     out = []
-    for i2 in xrange(i+1,len(input)+1) :
+    for i2 in range(i+1,len(input)+1) :
         out.extend(product([[Matched(input[i:i2], " ".join(input[i:i2]), 1, "text", var=var)]],
                            next(i2)))
     return out

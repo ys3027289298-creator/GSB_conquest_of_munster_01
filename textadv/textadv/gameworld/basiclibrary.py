@@ -78,12 +78,23 @@ define_direction("out", ["out"])
 # cause double importing.  Eit.  Probably should do something with the
 # "compile" function.
 
-execfile("textadv/gameworld/basicrelations.py")
-execfile("textadv/gameworld/basickinds.py")
-execfile("textadv/gameworld/basicrules.py")
-execfile("textadv/gameworld/basicactivities.py")
-execfile("textadv/gameworld/basicsequence.py")
-execfile("textadv/gameworld/basicactions.py")
+import os.path as _os_path
+
+def _execfile(filename) :
+    """Python 3 replacement for the Python 2 execfile builtin: runs
+    the file in this module's global namespace."""
+    with open(filename) as f :
+        code = compile(f.read(), filename, "exec")
+    exec(code, globals())
+
+_gameworld_dir = _os_path.dirname(_os_path.abspath(__file__))
+
+_execfile(_os_path.join(_gameworld_dir, "basicrelations.py"))
+_execfile(_os_path.join(_gameworld_dir, "basickinds.py"))
+_execfile(_os_path.join(_gameworld_dir, "basicrules.py"))
+_execfile(_os_path.join(_gameworld_dir, "basicactivities.py"))
+_execfile(_os_path.join(_gameworld_dir, "basicsequence.py"))
+_execfile(_os_path.join(_gameworld_dir, "basicactions.py"))
 
 ##
 # The default player

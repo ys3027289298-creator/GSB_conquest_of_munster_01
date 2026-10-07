@@ -29,7 +29,7 @@ def quickdef(world, obname, kind, props={}, **kwargs) :
     dictionary of things like "Scenery: True", which is taken to mean
     "world[Scenery(obname)] = True"""
     world.activity.def_obj(obname, kind)
-    for prop, val in props.iteritems() :
+    for prop, val in props.items() :
         world[prop(obname)] = val
     if "put_in" in kwargs :
         world.activity.put_in(obname, kwargs["put_in"])

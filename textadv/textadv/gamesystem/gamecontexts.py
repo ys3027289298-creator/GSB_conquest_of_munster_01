@@ -57,7 +57,7 @@ class ActorActivities(object) :
         self._activities[name] = ActivityTable(**kwargs)
     def to(self, name, **kwargs) :
         def _to(f) :
-            if not self._activities.has_key(name) :
+            if name not in self._activities :
                 self._activities[name] = ActivityTable()
             self._activities[name].add_handler(f, **kwargs)
             return f
@@ -72,16 +72,16 @@ class ActorActivities(object) :
         return self._activities[name].notify(args, mykwargs, disable=kwargs.get("disable", []))
     def copy(self) :
         naa = ActorActivities()
-        for name, table in self._activities.iteritems() :
+        for name, table in self._activities.items() :
             naa._activities[name] = table.copy()
         return naa
     def make_documentation(self, escape, heading_level=1) :
         hls = str(heading_level)
         shls = str(heading_level+1)
-        print "<h"+hls+">Actor activities</h"+hls+">"
-        print "<p>This is the documentation for the actor activities.</p>"
-        for name, table in self._activities.iteritems() :
-            print "<h"+shls+">to "+escape(name)+"</h"+shls+">"
+        print("<h"+hls+">Actor activities</h"+hls+">")
+        print("<p>This is the documentation for the actor activities.</p>")
+        for name, table in self._activities.items() :
+            print("<h"+shls+">to "+escape(name)+"</h"+shls+">")
             table.make_documentation(escape, heading_level=heading_level+2)
 
 # class ActorRules(object) :
@@ -124,7 +124,7 @@ class ActorContext(GameContext) :
         """Writes a line by evaluating the string using the utilities
         module.  If there is an actor, then the text is wrapped so
         that the text is rendered as if the actor were doing it."""
-        if kwargs.has_key("actor") :
+        if "actor" in kwargs :
             stuff = [as_actor(s, kwargs["actor"]) for s in stuff]
         newstuff = [self.stringeval.eval_str(s, self) for s in stuff]
         self.io.write(*newstuff)
@@ -162,7 +162,7 @@ class ActorContext(GameContext) :
                         self.io.set_status_var("headline", "*** Game over ***")
                         self.io.flush()
                         return (None, {})
-                for i in xrange(0, action.num_turns) :
+                for i in range(0, action.num_turns) :
                     self.activity.step_turn()
                 vis_cont = self.world.get_property("VisibleContainer", self.world.get_property("Location", self.actor))
                 self.io.set_status_var("visible_container", vis_cont)
@@ -195,10 +195,7 @@ class ActorContext(GameContext) :
 #        return actorrules.call(name, *args, **kwargs)
     def activity_table(self, name) :
         """Gets the action table of the given name."""
-        return actoractivities.activity_table(name)
-    def rule_table(self, name) :
-        """Gets the event table of the given name."""
-        return actorrules.rule_table(name)
+        return self.actoractivities.activity_table(name)
 
 class DisambiguationContext(GameContext) :
     def __init__(self, parent, amb) :
@@ -208,7 +205,7 @@ class DisambiguationContext(GameContext) :
         repla = dict()
         if len(self.amb.options) > 1 :
             self.parent.write("I'm a bit confused by what you meant in a couple of places.")
-        for var, opts in self.amb.options.iteritems() :
+        for var, opts in self.amb.options.items() :
             query = serial_comma([self.parent.world.get_property("DefiniteName", o)
                                   for o in opts], conj="or")
             self.parent.write("Did you mean "+query+"?")

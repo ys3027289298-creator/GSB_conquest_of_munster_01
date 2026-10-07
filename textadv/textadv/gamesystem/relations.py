@@ -63,7 +63,7 @@ class ManyToOneRelation(Relation) :
         rels,bounded,cache = data
         if isinstance(self.args[0], AbstractPattern) :
             out = []
-            for a,b in rels.iteritems() :
+            for a,b in rels.items() :
                 try :
                     out.append(self.match(type(self)(a,b)))
                 except NoMatchException :
@@ -92,13 +92,14 @@ class ManyToOneRelation(Relation) :
             return list(cache[a][b])
         except KeyError :
             pass # too bad.
-        out = [a]
-        while a != b :
-            if not rels.has_key(a) :
+        start = a
+        out = [start]
+        while start != b :
+            if start not in rels :
                 return None
-            a = rels[a]
-            out.append(a)
-        if not cache.has_key(a) :
+            start = rels[start]
+            out.append(start)
+        if a not in cache :
             cache[a] = dict()
         cache[a][b] = out
         return out
@@ -107,8 +108,8 @@ class ManyToOneRelation(Relation) :
         return [data[0].copy(), list(data[1]), dict()]
     @classmethod
     def dump(r, data) :
-        for a,b in data[0].iteritems() :
-            print "%s(%r, %r)" % (r.__name__, a, b)
+        for a,b in data[0].items() :
+            print("%s(%r, %r)" % (r.__name__, a, b))
 
 class OneToManyRelation(Relation) :
     def __init__(self, a, b) :
@@ -139,7 +140,7 @@ class OneToManyRelation(Relation) :
         rels,bounded,cache = data
         if isinstance(self.args[1], AbstractPattern) :
             out = []
-            for b,a in rels.iteritems() :
+            for b,a in rels.items() :
                 try :
                     out.append(self.match(type(self)(a,b)))
                 except NoMatchException :
@@ -166,13 +167,14 @@ class OneToManyRelation(Relation) :
             return list(cache[a][b])
         except KeyError :
             pass # too bad.
-        out = [b]
-        while a != b :
-            if not rels.has_key(b) :
+        end = b
+        out = [end]
+        while a != end :
+            if end not in rels :
                 return None
-            b = rels[b]
-            out.insert(0,b)
-        if not cache.has_key(a) :
+            end = rels[end]
+            out.insert(0,end)
+        if a not in cache :
             cache[a] = dict()
         cache[a][b] = out
         return out
@@ -181,8 +183,8 @@ class OneToManyRelation(Relation) :
         return [data[0].copy(), list(data[1]), dict()]
     @classmethod
     def dump(r, data) :
-        for b,a in data[0].iteritems() :
-            print "%s(%r, %r)" % (r.__name__, a, b)
+        for b,a in data[0].items() :
+            print("%s(%r, %r)" % (r.__name__, a, b))
 
 class ManyToManyRelation(Relation) :
     def __init__(self, a, b) :
@@ -232,7 +234,7 @@ class ManyToManyRelation(Relation) :
             for n in neighbors :
                 if (n not in seen) and predicate(n) :
                     to_visit.append(n)
-                    if not paths.has_key(n) :
+                    if n not in paths :
                         paths[n] = paths[visiting] + [n]
                 if b == n :
                     return paths[n]
@@ -243,7 +245,7 @@ class ManyToManyRelation(Relation) :
     @classmethod
     def dump(r, data) :
         for rel in data :
-            print repr(r(*rel))
+            print(repr(r(*rel)))
 
 class DirectedManyToManyRelation(ManyToManyRelation) :
     @staticmethod
@@ -282,7 +284,7 @@ class FreeformRelation(Relation) :
     @classmethod
     def dump(r, data) :
         for rel in data :
-            print repr(r(*rel))
+            print(repr(r(*rel)))
 
 
 def __fix_module_name(cls) :
